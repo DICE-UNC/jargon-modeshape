@@ -20,6 +20,8 @@ import org.modeshape.jcr.federation.spi.Pageable;
 import org.modeshape.jcr.federation.spi.WritableConnector;
 import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.Property;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ModeShape SPI connector
@@ -30,8 +32,10 @@ import org.modeshape.jcr.value.Property;
 public class IRODSWriteableConnector extends WritableConnector implements
 		ExtraPropertiesStore, Pageable {
 
-	private static org.modeshape.common.logging.Logger logger;
 	private DocumentMapper documentMapper;
+	private ConnectorContext connectorContext;
+	public static final Logger log = LoggerFactory
+			.getLogger(IRODSWriteableConnector.class);
 
 	/**
 	 * Get the default document writer
@@ -54,11 +58,10 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			final NodeTypeManager nodeTypeManager) throws RepositoryException,
 			IOException {
 		super.initialize(registry, nodeTypeManager);
-		logger = this.getContext().getLogger(getClass());
-		ConnectorContext connectorContext = new ConnectorContext();
-		logger.trace("getting documentMapper");
+		connectorContext = new ConnectorContext();
+		log.info("getting documentMapper");
 		documentMapper = new DocumentMapper(connectorContext);
-		logger.trace("initialized");
+		log.info("initialized");
 
 	}
 
@@ -95,9 +98,16 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	}
 
 	@Override
-	public Document getDocumentById(final String arg0) {
-		// TODO Auto-generated method stub
-		return null;
+	public Document getDocumentById(final String id) {
+		log.info("getDocumentById()");
+		if (id == null || id.isEmpty()) {
+			throw new IllegalArgumentException("null id");
+		}
+
+		log.info("id:{}", id);
+		
+		Document document = documentMapper.
+
 	}
 
 	@Override
@@ -141,6 +151,36 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	public void updateDocument(final DocumentChanges arg0) {
 		// TODO Auto-generated method stub
 
+	}
+
+	/**
+	 * @return the documentMapper
+	 */
+	DocumentMapper getDocumentMapper() {
+		return documentMapper;
+	}
+
+	/**
+	 * @param documentMapper
+	 *            the documentMapper to set
+	 */
+	void setDocumentMapper(DocumentMapper documentMapper) {
+		this.documentMapper = documentMapper;
+	}
+
+	/**
+	 * @return the connectorContext
+	 */
+	ConnectorContext getConnectorContext() {
+		return connectorContext;
+	}
+
+	/**
+	 * @param connectorContext
+	 *            the connectorContext to set
+	 */
+	void setConnectorContext(ConnectorContext connectorContext) {
+		this.connectorContext = connectorContext;
 	}
 
 }
