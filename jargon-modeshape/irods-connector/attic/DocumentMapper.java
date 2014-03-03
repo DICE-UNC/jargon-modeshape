@@ -15,16 +15,14 @@ import org.irods.jargon.core.pub.io.IRODSFile;
 import org.modeshape.jcr.cache.document.DocumentTranslator;
 import org.modeshape.jcr.federation.FederatedDocumentWriter;
 import org.modeshape.jcr.federation.spi.DocumentWriter;
+import org.modeshape.jcr.value.BinaryValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Create appropriate ModeShape documents based on the underlying iRDOS type
  * 
- * see http://grepcode.com/file/repository.jboss.org/nexus/content/repositories/
- * releases
- * /org.modeshape/modeshape-jcr/3.7.1.Final/org/modeshape/connector/filesystem
- * /FileSystemConnector.java?av=f
+ * see http://grepcode.com/file/repository.jboss.org/nexus/content/repositories/releases/org.modeshape/modeshape-jcr/3.7.1.Final/org/modeshape/connector/filesystem/FileSystemConnector.java?av=f
  * 
  * 
  * @author Mike Conway - DICE (www.irods.org)
@@ -100,6 +98,14 @@ class DocumentMapper {
 		log.info("id:{}", id);
 
 		log.info("get irodsFileFactory...");
+		
+		 boolean isResource = isContentNode(id);
+		 
+		 if (isResource) {
+			
+		 }
+		
+		
 		IRODSFile docFile = connectorContext.getIrodsAccessObjectFactory()
 				.getIRODSFileFactory(irodsAccount).instanceIRODSFile(id);
 
@@ -114,6 +120,32 @@ class DocumentMapper {
 		}
 
 	}
+	
+	private Document resourceNodeForId(final String id) {
+		DocumentWriter writer = null;
+
+		  writer = newDocument(id);
+          BinaryValue binaryValue = binaryFor(file);
+         writer.setPrimaryType(NT_RESOURCE);
+           writer.addProperty(JCR_DATA, binaryValue);
+          if (addMimeTypeMixin) {
+              String mimeType = null;
+              String encoding = null; // We don't really know this
+              try {
+                   mimeType = binaryValue.getMimeType();
+            } catch (Throwable e) {
+                   getLogger().error(e, JcrI18n.couldNotGetMimeType, getSourceName(), id, e.getMessage());
+               }
+              writer.addProperty(JCR_ENCODING, encoding);
+              writer.addProperty(JCR_MIME_TYPE, mimeType);
+          }
+          writer.addProperty(JCR_LAST_MODIFIED, factories().getDateFactory().create(file.lastModified()));
+           writer.addProperty(JCR_LAST_MODIFIED_BY, null); // ignored
+
+          // make these binary not queryable. If we really want to query them, we need to switch to external binaries
+          writer.setNotQueryable();
+         parentFile = file;
+	}
 
 	private Document retriveDataObjectForId(IRODSFile docFile) {
 		DocumentWriter writer = null;
@@ -122,10 +154,11 @@ class DocumentMapper {
 		writer = newDocument(docFile.getAbsolutePath());
 		writer.setPrimaryType(NT_FILE);
 		writer.addProperty(JCR_CREATED,
-				irodsConnector.factories().getDateFactory().create(file.lastModified()));
+				irodsConnector.getConnectorFactories().getDateFactory().create(docFile.lastModified()));
 		writer.addProperty(JCR_CREATED_BY, null); // ignored
-		String childId = isRoot ? JCR_CONTENT_SUFFIX : id + JCR_CONTENT_SUFFIX;
+		String childId = isRoot(docFile.getAbsolutePath()) ? JCR_CONTENT_SUFFIX : docFile.getAbsolutePath() + JCR_CONTENT_SUFFIX;
 		writer.addChild(childId, JCR_CONTENT);
+		return writer.document();
 
 	}
 
@@ -137,4 +170,13 @@ class DocumentMapper {
 	protected DocumentWriter newDocument(String id) {
 		return new FederatedDocumentWriter(translator).setId(id);
 	}
+	
+	 private boolean isRoot( String id ) {
+		         return DELIMITER.equals(id);
+	 }
+	 
+	 protected boolean isContentNode( String id ) {
+		return id.endsWith(JCR_CONTENT_SUFFIX);
+	 }
+
 }
