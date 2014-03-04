@@ -3,6 +3,7 @@
  */
 package org.irods.jargon.modeshape.connector;
 
+import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.core.exception.JargonRuntimeException;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
@@ -17,6 +18,7 @@ import org.irods.jargon.core.pub.IRODSFileSystem;
 public class ConnectorContext {
 
 	private final IRODSFileSystem irodsFileSystem;
+	private IRODSAccount proxyAccount;
 
 	/**
 	 * Default constructor
@@ -40,6 +42,21 @@ public class ConnectorContext {
 			throw new JargonRuntimeException(
 					"Unable to reference irodsAccessObjectFactory", e);
 		}
+	}
+
+	/**
+	 * @return the proxyAccount
+	 */
+	public IRODSAccount getProxyAccount() {
+		return proxyAccount;
+	}
+
+	/**
+	 * @param proxyAccount
+	 *            the proxyAccount to set
+	 */
+	public void setProxyAccount(IRODSAccount proxyAccount) {
+		this.proxyAccount = proxyAccount;
 	}
 
 }

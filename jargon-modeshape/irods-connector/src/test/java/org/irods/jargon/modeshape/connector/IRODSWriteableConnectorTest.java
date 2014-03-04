@@ -24,7 +24,7 @@ public class IRODSWriteableConnectorTest {
 	}
 
 	@Test
-	public void TestInitialize() throws RepositoryException, IOException {
+	public void testInitialize() throws RepositoryException, IOException {
 		NamespaceRegistry namespaceRegistry = Mockito
 				.mock(NamespaceRegistry.class);
 		NodeTypeManager nodeTypeManager = Mockito.mock(NodeTypeManager.class);
