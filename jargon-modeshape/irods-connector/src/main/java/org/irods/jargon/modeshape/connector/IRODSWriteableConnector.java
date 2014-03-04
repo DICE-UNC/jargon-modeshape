@@ -996,6 +996,41 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 	@Override
 	public boolean removeProperties(final String arg0) {
+		CollectionAndDataObjectListAndSearchAO collectionAndDataObjectListAndSearchAO;
+		try {
+			collectionAndDataObjectListAndSearchAO = connectorContext
+					.getIrodsAccessObjectFactory()
+					.getCollectionAndDataObjectListAndSearchAO(
+							getIrodsAccount());
+			ObjStat objStat = collectionAndDataObjectListAndSearchAO
+					.retrieveObjectStatForPath(arg0);
+
+			if (objStat.isSomeTypeOfCollection()) {
+				return removePropertiesForCollection(arg0);
+			} else {
+				CollectionAndPath collectionAndPath = MiscIRODSUtils
+						.separateCollectionAndPathFromGivenAbsolutePath(arg0);
+				return removePropertiesForDataObject(
+						collectionAndPath.getCollectionParent(),
+						collectionAndPath.getChildName());
+			}
+
+		} catch (JargonException e) {
+			throw new DocumentStoreException(arg0, "error removing properties");
+		} finally {
+			getConnectorContext().getIrodsAccessObjectFactory()
+					.closeSessionAndEatExceptions();
+		}
+
+	}
+
+	private boolean removePropertiesForDataObject(String collectionParent,
+			String childName) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	private boolean removePropertiesForCollection(String arg0) {
 		// TODO Auto-generated method stub
 		return false;
 	}
