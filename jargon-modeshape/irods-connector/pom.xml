@@ -23,6 +23,10 @@
 			<artifactId>modeshape-jcr</artifactId>
 		</dependency>  
 		<dependency>
+			<groupId>org.modeshape</groupId>
+			<artifactId>modeshape-unit-test</artifactId>
+		</dependency> 
+		<dependency>
 			<groupId>org.irods.jargon</groupId>
 			<artifactId>jargon-core</artifactId>
 		</dependency>

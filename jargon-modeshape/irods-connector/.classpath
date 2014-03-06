@@ -59,6 +59,14 @@
   <classpathentry kind="var" path="M2_REPO/org/apache/xmlbeans/xmlbeans/2.3.0/xmlbeans-2.3.0.jar"/>
   <classpathentry kind="var" path="M2_REPO/dom4j/dom4j/1.6.1/dom4j-1.6.1.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/gagravarr/vorbis-java-core/0.1/vorbis-java-core-0.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/modeshape/modeshape-unit-test/3.7.1.Final/modeshape-unit-test-3.7.1.Final.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/modeshape/modeshape-common/3.7.1.Final/modeshape-common-3.7.1.Final-tests.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/modeshape/modeshape-jcr/3.7.1.Final/modeshape-jcr-3.7.1.Final-tests.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/infinispan/infinispan-core/5.2.7.Final/infinispan-core-5.2.7.Final-tests.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/modeshape/modeshape-jdbc-local/3.7.1.Final/modeshape-jdbc-local-3.7.1.Final-tests.jar"/>
+  <classpathentry kind="var" path="M2_REPO/junit/junit/4.7/junit-4.7.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/hamcrest/hamcrest-library/1.1/hamcrest-library-1.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/hamcrest/hamcrest-core/1.1/hamcrest-core-1.1.jar"/>
   <classpathentry kind="src" path="/jargon-core"/>
   <classpathentry kind="var" path="M2_REPO/commons-io/commons-io/2.1/commons-io-2.1.jar"/>
   <classpathentry kind="var" path="M2_REPO/com/claymoresystems/puretls/1.1/puretls-1.1.jar"/>
@@ -66,5 +74,4 @@
   <classpathentry kind="var" path="M2_REPO/org/perf4j/perf4j/0.9.9/perf4j-0.9.9.jar"/>
   <classpathentry kind="var" path="M2_REPO/log4j/log4j/1.2.16/log4j-1.2.16.jar" sourcepath="M2_REPO/log4j/log4j/1.2.16/log4j-1.2.16-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/slf4j/slf4j-log4j12/1.5.10/slf4j-log4j12-1.5.10.jar"/>
-  <classpathentry kind="var" path="M2_REPO/junit/junit/4.7/junit-4.7.jar"/>
 </classpath>
