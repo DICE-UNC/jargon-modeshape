@@ -1,88 +1,34 @@
 {
-    "name" : "DataRepository",
-    "transactionMode" : "auto",
-    "monitoring" : {
-        "enabled" : true,
-    },
+    "name" : "Persisted-Repository",
     "workspaces" : {
         "predefined" : ["otherWorkspace"],
         "default" : "default",
-        "allowCreation" : true,
-    },
-    "storage" : {
-        "cacheName" : "DataRepository",
-        "cacheConfiguration" : "infinispan_configuration.xml",
-        "transactionManagerLookup" = "org.infinispan.transaction.lookup.GenericTransactionManagerLookup",
-        "binaryStorage" : {
-            "type" : "file",
-            "directory" : "DataRepository/binaries",
-            "minimumBinarySizeInBytes" : 4096
-        }
+        "allowCreation" : true
     },
     "security" : {
         "anonymous" : {
-            "username" : "<anonymous>",
             "roles" : ["readonly","readwrite","admin"],
             "useOnFailedLogin" : false
-        },
-        "providers" : ["My Custom Security Provider",                "classname" : "com.example.MyAuthenticationProvider",            },            {                "classname" : "JAAS",                "policyName" : "modeshape-jcr",            }|MODE:Home]
-    },
-    "query" : {
-        "enabled" : true,
-        "rebuildUponStartup" : "if_missing",
-        "textExtracting": {
-            "threadPool" : "test",
-            "extractors" : {
-                "customExtractor": {
-                    "name" : "MyFileType extractor",
-                    "classname" : "com.example.myfile.MyExtractor",
-                },
-                "tikaExtractor":{
-                    "name" : "General content-based extractor",
-                    "classname" : "tika",
-                }
-            }
-         },
-        "indexStorage" : {
-            "type" : "filesystem",
-            "location" : "DataRepository/indexes",
-            "lockingStrategy" : "native",
-            "fileSystemAccessType" : "auto"
-        },
-        "indexing" : {
-            "threadPool" : "modeshape-workers",
-            "analyzer" : "org.apache.lucene.analysis.standard.StandardAnalyzer",
-            "similarity" : "org.apache.lucene.search.DefaultSimilarity",
-            "batchSize" : -1,
-            "indexFormat" : "LUCENE_35",
-            "readerStrategy" : "shared",
-            "mode" : "sync",
-            "asyncThreadPoolSize" : 1,
-            "asyncMaxQueueSize" : 0,
-            "backend" : {
-                "type" : "lucene",
-                 
-            },
-            "hibernate.search.custom.overridden.property" : "value",
         }
     },
-    "sequencing" : {
-        "removeDerivedContentWithOriginal" : true,
-        "threadPool" : "modeshape-workers",
-        "sequencers" : {
-            "ZIP Sequencer" : {
-                "description" : "ZIP Files loaded under '/files' and extracted into '/sequenced/zip/$1'",
-                "classname" : "ZipSequencer",
-                "pathExpressions" : ["default:/files(//)(*.zip[*])/jcr:content[@jcr:data] => default:/sequenced/zip/$1"],
-            },
-            "Delimited Text File Sequencer" : {
-                "classname" : "org.modeshape.sequencer.text.DelimitedTextSequencer",
-                "pathExpressions" : [MODE:Clustering])/jcr:content[@jcr:data] => default:/sequenced/text/delimited/$1"
-                ],
-                "splitPattern" : ","
-            }
+    "storage" : {
+        "cacheConfiguration" : "infinispan-configuration.xml",
+        "cacheName" : "persisted-repository",
+        "binaryStorage" : {
+            "type" : "file",
+            "directory": "/",
+            "minimumBinarySizeInBytes" : 999
         }
     },
-    "clustering" : {
+    "externalSources" : {
+        "irods" : {
+            "classname" : "org.irods.jargon.modeshape.connector.IRODSWriteableConnector",
+            "directoryPath" : "/test1/home/test1",
+            "projections" : [ "/files" ],
+            "readOnly" : false,
+            "addMimeTypeMixin" : false,
+            "exclusionPattern" : ".+[.]tmp$"
+        }
     }
+
 }

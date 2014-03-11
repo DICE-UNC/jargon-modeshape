@@ -1,5 +1,11 @@
 package org.irods.jargon.modeshape.connector;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -28,12 +34,13 @@ import org.modeshape.jcr.SingleUseAbstractTest;
 import org.modeshape.jcr.api.Binary;
 import org.modeshape.jcr.api.JcrTools;
 import org.modeshape.jcr.api.NamespaceRegistry;
+import org.modeshape.jcr.api.Workspace;
 import org.modeshape.jcr.api.federation.FederationManager;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 
 public class IRODSWriteableConnectorTest extends SingleUseAbstractTest {
 
-	protected static final String TEXT_CONTENT = "Some text content";
+	public static final String TEXT_CONTENT = "Some text content";
 
 	private Node testRoot;
 	private Projection readOnlyProjection;
@@ -96,9 +103,7 @@ public class IRODSWriteableConnectorTest extends SingleUseAbstractTest {
 		}
 
 		startRepositoryWithConfiguration(getClass().getClassLoader()
-				.getResourceAsStream(
-						"config/repo-config-filesystem-federation.json"));
-		registerNodeTypes("cnd/flex.cnd");
+				.getResourceAsStream("conf/testConfig1.json"));
 
 		Session session = jcrSession();
 		testRoot = session.getRootNode().addNode("testRoot");
@@ -126,75 +131,31 @@ public class IRODSWriteableConnectorTest extends SingleUseAbstractTest {
 		Assert.assertNotNull(irodsWriteableConnector.getConnectorContext());
 	}
 
-	protected void assertNoSidecarFile(Projection projection, String filePath) {
-		assertThat(
-				projection
-						.getTestFile(
-								filePath
-										+ JsonSidecarExtraPropertyStore.DEFAULT_EXTENSION)
-						.exists(), is(false));
-		assertThat(
-				projection
-						.getTestFile(
-								filePath
-										+ LegacySidecarExtraPropertyStore.DEFAULT_EXTENSION)
-						.exists(), is(false));
-		assertThat(
-				projection
-						.getTestFile(
-								filePath
-										+ JsonSidecarExtraPropertyStore.DEFAULT_RESOURCE_EXTENSION)
-						.exists(), is(false));
-		assertThat(
-				projection
-						.getTestFile(
-								filePath
-										+ LegacySidecarExtraPropertyStore.DEFAULT_RESOURCE_EXTENSION)
-						.exists(), is(false));
-	}
-
-	protected void assertJsonSidecarFile(Projection projection, String filePath) {
-		File sidecarFile = projection.getTestFile(filePath
-				+ JsonSidecarExtraPropertyStore.DEFAULT_EXTENSION);
-		if (sidecarFile.exists())
-			return;
-		sidecarFile = projection.getTestFile(filePath
-				+ JsonSidecarExtraPropertyStore.DEFAULT_RESOURCE_EXTENSION);
-		assertThat(sidecarFile.exists(), is(true));
-	}
-
-	protected void assertFileContains(Projection projection, String filePath,
-			InputStream expectedContent) throws IOException {
+	protected void assertFileContains(final Projection projection,
+			final String filePath, final InputStream expectedContent)
+			throws IOException {
 		assertFileContains(projection, filePath,
 				IoUtil.readBytes(expectedContent));
 	}
 
-	protected void assertFileContains(Projection projection, String filePath,
-			byte[] expectedContent) throws IOException {
+	protected void assertFileContains(final Projection projection,
+			final String filePath, final byte[] expectedContent)
+			throws IOException {
 		File contentFile = projection.getTestFile(filePath);
 		assertThat(contentFile.exists(), is(true));
 		byte[] actual = IoUtil.readBytes(contentFile);
 		assertThat(actual, is(expectedContent));
 	}
 
-	protected void assertBinaryContains(Binary binaryValue,
-			byte[] expectedContent) throws IOException, RepositoryException {
+	protected void assertBinaryContains(final Binary binaryValue,
+			final byte[] expectedContent) throws IOException,
+			RepositoryException {
 		byte[] actual = IoUtil.readBytes(binaryValue.getStream());
 		assertThat(actual, is(expectedContent));
 	}
 
-	protected void assertLegacySidecarFile(Projection projection,
-			String filePath) {
-		File sidecarFile = projection.getTestFile(filePath
-				+ LegacySidecarExtraPropertyStore.DEFAULT_EXTENSION);
-		if (sidecarFile.exists())
-			return;
-		sidecarFile = projection.getTestFile(filePath
-				+ LegacySidecarExtraPropertyStore.DEFAULT_RESOURCE_EXTENSION);
-		assertThat(sidecarFile.exists(), is(true));
-	}
-
-	protected void assertFolder(Node node, File dir) throws RepositoryException {
+	protected void assertFolder(final Node node, final File dir)
+			throws RepositoryException {
 		assertThat(dir.exists(), is(true));
 		assertThat(dir.canRead(), is(true));
 		assertThat(dir.isDirectory(), is(true));
@@ -205,7 +166,8 @@ public class IRODSWriteableConnectorTest extends SingleUseAbstractTest {
 				is(dir.lastModified()));
 	}
 
-	protected void assertFile(Node node, File file) throws RepositoryException {
+	protected void assertFile(final Node node, final File file)
+			throws RepositoryException {
 		long lastModified = file.lastModified();
 		assertThat(node.getName(), is(file.getName()));
 		assertThat(node.getIndex(), is(1));
@@ -219,7 +181,7 @@ public class IRODSWriteableConnectorTest extends SingleUseAbstractTest {
 				is(lastModified));
 	}
 
-	private void assertPathNotFound(String path) throws Exception {
+	private void assertPathNotFound(final String path) throws Exception {
 		try {
 			session.getNode(path);
 			fail(path + " was found, even though it shouldn't have been");
@@ -228,226 +190,242 @@ public class IRODSWriteableConnectorTest extends SingleUseAbstractTest {
 		}
 
 	}
-}
 
-@Immutable
-protected class Projection {
-	protected final File directory;
-	private final String name;
+	@Immutable
+	protected class Projection {
+		protected final File directory;
+		private final String name;
 
-	public Projection(String name, String directoryPath) {
-		this.name = name;
-		this.directory = new File(directoryPath);
-	}
+		public Projection(final String name, final String directoryPath) {
+			this.name = name;
+			directory = new File(directoryPath);
+		}
 
-	public String getName() {
-		return name;
-	}
+		public String getName() {
+			return name;
+		}
 
-	public void create(Node parentNode, String childName)
-			throws RepositoryException {
-		Session session = parentNode.getSession();
-		FederationManager fedMgr = session.getWorkspace()
-				.getFederationManager();
-		fedMgr.createProjection(parentNode.getPath(), getName(), "/", childName);
-	}
+		public void create(final Node parentNode, final String childName)
+				throws RepositoryException {
+			Session session = parentNode.getSession();
+			Workspace workspace = (Workspace) session.getWorkspace();
+			FederationManager fedMgr = workspace.getFederationManager();
+			fedMgr.createProjection(parentNode.getPath(), getName(), "/",
+					childName);
+		}
 
-	public void initialize() throws IOException {
-		if (directory.exists())
-			FileUtil.delete(directory);
-		directory.mkdirs();
-		// Make some content ...
-		new File(directory, "dir1").mkdir();
-		new File(directory, "dir2").mkdir();
-		new File(directory, "dir3").mkdir();
-		File simpleJson = new File(directory, "dir3/simple.json");
-		IoUtil.write(
-				getClass().getClassLoader().getResourceAsStream(
-						"data/simple.json"), new FileOutputStream(simpleJson));
-		File simpleTxt = new File(directory, "dir3/simple.txt");
-		IoUtil.write(TEXT_CONTENT, new FileOutputStream(simpleTxt));
-	}
+		public void initialize() throws IOException {
+			if (directory.exists()) {
+				FileUtil.delete(directory);
+			}
+			directory.mkdirs();
+			// Make some content ...
+			new File(directory, "dir1").mkdir();
+			new File(directory, "dir2").mkdir();
+			new File(directory, "dir3").mkdir();
+			File simpleJson = new File(directory, "dir3/simple.json");
+			IoUtil.write(
+					getClass().getClassLoader().getResourceAsStream(
+							"data/simple.json"), new FileOutputStream(
+							simpleJson));
+			File simpleTxt = new File(directory, "dir3/simple.txt");
+			IoUtil.write(TEXT_CONTENT, new FileOutputStream(simpleTxt));
+		}
 
-	public void delete() {
-		if (directory.exists())
-			FileUtil.delete(directory);
-	}
+		public void delete() {
+			if (directory.exists()) {
+				FileUtil.delete(directory);
+			}
+		}
 
-	public File getTestFile(String relativePath) {
-		return new File(directory, relativePath);
-	}
+		public File getTestFile(final String relativePath) {
+			return new File(directory, relativePath);
+		}
 
-	public void testContent(Node federatedNode, String childName)
-			throws RepositoryException {
-		Session session = federatedNode.getSession();
-		String path = federatedNode.getPath() + "/" + childName;
+		public void testContent(final Node federatedNode, final String childName)
+				throws RepositoryException {
+			Session session = federatedNode.getSession();
+			String path = federatedNode.getPath() + "/" + childName;
 
-		Node files = session.getNode(path);
-		assertThat(files.getName(), is(childName));
-		assertThat(files.getPrimaryNodeType().getName(), is("nt:folder"));
-		Node dir1 = session.getNode(path + "/dir1");
-		Node dir2 = session.getNode(path + "/dir2");
-		Node dir3 = session.getNode(path + "/dir3");
-		Node simpleJson = session.getNode(path + "/dir3/simple.json");
-		Node simpleText = session.getNode(path + "/dir3/simple.txt");
-		assertFolder(dir1, getTestFile("dir1"));
-		assertFolder(dir2, getTestFile("dir2"));
-		assertFolder(dir3, getTestFile("dir3"));
-		assertFile(simpleJson, getTestFile("dir3/simple.json"));
-		assertFile(simpleText, getTestFile("dir3/simple.txt"));
+			Node files = session.getNode(path);
+			assertThat(files.getName(), is(childName));
+			assertThat(files.getPrimaryNodeType().getName(), is("nt:folder"));
+			Node dir1 = session.getNode(path + "/dir1");
+			Node dir2 = session.getNode(path + "/dir2");
+			Node dir3 = session.getNode(path + "/dir3");
+			Node simpleJson = session.getNode(path + "/dir3/simple.json");
+			Node simpleText = session.getNode(path + "/dir3/simple.txt");
+			assertFolder(dir1, getTestFile("dir1"));
+			assertFolder(dir2, getTestFile("dir2"));
+			assertFolder(dir3, getTestFile("dir3"));
+			assertFile(simpleJson, getTestFile("dir3/simple.json"));
+			assertFile(simpleText, getTestFile("dir3/simple.txt"));
 
-		// Look up a node by identifier ...
-		String externalNodeId = simpleJson.getIdentifier();
-		Node simpleJson2 = session.getNodeByIdentifier(externalNodeId);
-		assertFile(simpleJson2, getTestFile("dir3/simple.json"));
+			// Look up a node by identifier ...
+			String externalNodeId = simpleJson.getIdentifier();
+			Node simpleJson2 = session.getNodeByIdentifier(externalNodeId);
+			assertFile(simpleJson2, getTestFile("dir3/simple.json"));
 
-		// Look up the node again by path ...
-		Node simpleJson3 = session.getNode(path + "/dir3/simple.json");
-		assertFile(simpleJson3, getTestFile("dir3/simple.json"));
+			// Look up the node again by path ...
+			Node simpleJson3 = session.getNode(path + "/dir3/simple.json");
+			assertFile(simpleJson3, getTestFile("dir3/simple.json"));
 
-		// Look for a node that isn't there ...
-		try {
-			session.getNode(path + "/dir3/non-existant.oops");
-			fail("Should not have been able to find a non-existing file");
-		} catch (PathNotFoundException e) {
-			// expected
+			// Look for a node that isn't there ...
+			try {
+				session.getNode(path + "/dir3/non-existant.oops");
+				fail("Should not have been able to find a non-existing file");
+			} catch (PathNotFoundException e) {
+				// expected
+			}
+		}
+
+		@Override
+		public String toString() {
+			return "Projection: " + name + " (at '"
+					+ directory.getAbsolutePath() + "')";
 		}
 	}
 
-	@Override
-	public String toString() {
-		return "Projection: " + name + " (at '" + directory.getAbsolutePath()
-				+ "')";
-	}
-}
+	protected class PagedProjection extends Projection {
 
-protected class PagedProjection extends Projection {
-
-	public PagedProjection(String name, String directoryPath) {
-		super(name, directoryPath);
-	}
-
-	@Override
-	public void testContent(Node federatedNode, String childName)
-			throws RepositoryException {
-		Session session = federatedNode.getSession();
-		String path = federatedNode.getPath() + "/" + childName;
-
-		assertFolder(session, path, "dir1", "dir2", "dir3", "dir4", "dir5");
-		assertFolder(session, path + "/dir1", "simple1.json", "simple2.json",
-				"simple3.json", "simple4.json", "simple5.json", "simple6.json");
-		assertFolder(session, path + "/dir2", "simple1.json", "simple2.json");
-		assertFolder(session, path + "/dir3", "simple1.json");
-		assertFolder(session, path + "/dir4", "simple1.json", "simple2.json",
-				"simple3.json");
-		assertFolder(session, path + "/dir5", "simple1.json", "simple2.json",
-				"simple3.json", "simple4.json", "simple5.json");
-	}
-
-	private void assertFolder(Session session, String path,
-			String... childrenNames) throws RepositoryException {
-		Node folderNode = session.getNode(path);
-		assertThat(folderNode.getPrimaryNodeType().getName(), is("nt:folder"));
-		List<String> expectedChildren = new ArrayList<String>(
-				Arrays.asList(childrenNames));
-
-		NodeIterator nodes = folderNode.getNodes();
-		assertEquals(expectedChildren.size(), nodes.getSize());
-		while (nodes.hasNext()) {
-			Node node = nodes.nextNode();
-			String nodeName = node.getName();
-			assertTrue(expectedChildren.contains(nodeName));
-			expectedChildren.remove(nodeName);
+		public PagedProjection(final String name, final String directoryPath) {
+			super(name, directoryPath);
 		}
-	}
 
-	@Override
-	public void initialize() throws IOException {
-		if (directory.exists())
-			FileUtil.delete(directory);
-		directory.mkdirs();
-		// Make some content ...
-		new File(directory, "dir1").mkdir();
-		addFile("dir1/simple1.json", "data/simple.json");
-		addFile("dir1/simple2.json", "data/simple.json");
-		addFile("dir1/simple3.json", "data/simple.json");
-		addFile("dir1/simple4.json", "data/simple.json");
-		addFile("dir1/simple5.json", "data/simple.json");
-		addFile("dir1/simple6.json", "data/simple.json");
+		@Override
+		public void testContent(final Node federatedNode, final String childName)
+				throws RepositoryException {
+			Session session = federatedNode.getSession();
+			String path = federatedNode.getPath() + "/" + childName;
 
-		new File(directory, "dir2").mkdir();
-		addFile("dir2/simple1.json", "data/simple.json");
-		addFile("dir2/simple2.json", "data/simple.json");
-
-		new File(directory, "dir3").mkdir();
-		addFile("dir3/simple1.json", "data/simple.json");
-
-		new File(directory, "dir4").mkdir();
-		addFile("dir4/simple1.json", "data/simple.json");
-		addFile("dir4/simple2.json", "data/simple.json");
-		addFile("dir4/simple3.json", "data/simple.json");
-
-		new File(directory, "dir5").mkdir();
-		addFile("dir5/simple1.json", "data/simple.json");
-		addFile("dir5/simple2.json", "data/simple.json");
-		addFile("dir5/simple3.json", "data/simple.json");
-		addFile("dir5/simple4.json", "data/simple.json");
-		addFile("dir5/simple5.json", "data/simple.json");
-	}
-
-	private void addFile(String path, String contentFile) throws IOException {
-		File file = new File(directory, path);
-		IoUtil.write(
-				getClass().getClassLoader().getResourceAsStream(contentFile),
-				new FileOutputStream(file));
-	}
-
-}
-
-protected class LargeFilesProjection extends Projection {
-
-	public LargeFilesProjection(String name, String directoryPath) {
-		super(name, directoryPath);
-	}
-
-	@Override
-	public void testContent(Node federatedNode, String childName)
-			throws RepositoryException {
-		Session session = federatedNode.getSession();
-		String path = federatedNode.getPath() + "/" + childName;
-		assertFolder(session, path, "large-file1.png");
-	}
-
-	private void assertFolder(Session session, String path,
-			String... childrenNames) throws RepositoryException {
-		Node folderNode = session.getNode(path);
-		assertThat(folderNode.getPrimaryNodeType().getName(), is("nt:folder"));
-		List<String> expectedChildren = new ArrayList<String>(
-				Arrays.asList(childrenNames));
-
-		NodeIterator nodes = folderNode.getNodes();
-		assertEquals(expectedChildren.size(), nodes.getSize());
-		while (nodes.hasNext()) {
-			Node node = nodes.nextNode();
-			String nodeName = node.getName();
-			assertTrue(expectedChildren.contains(nodeName));
-			expectedChildren.remove(nodeName);
+			assertFolder(session, path, "dir1", "dir2", "dir3", "dir4", "dir5");
+			assertFolder(session, path + "/dir1", "simple1.json",
+					"simple2.json", "simple3.json", "simple4.json",
+					"simple5.json", "simple6.json");
+			assertFolder(session, path + "/dir2", "simple1.json",
+					"simple2.json");
+			assertFolder(session, path + "/dir3", "simple1.json");
+			assertFolder(session, path + "/dir4", "simple1.json",
+					"simple2.json", "simple3.json");
+			assertFolder(session, path + "/dir5", "simple1.json",
+					"simple2.json", "simple3.json", "simple4.json",
+					"simple5.json");
 		}
+
+		private void assertFolder(final Session session, final String path,
+				final String... childrenNames) throws RepositoryException {
+			Node folderNode = session.getNode(path);
+			assertThat(folderNode.getPrimaryNodeType().getName(),
+					is("nt:folder"));
+			List<String> expectedChildren = new ArrayList<String>(
+					Arrays.asList(childrenNames));
+
+			NodeIterator nodes = folderNode.getNodes();
+			assertEquals(expectedChildren.size(), nodes.getSize());
+			while (nodes.hasNext()) {
+				Node node = nodes.nextNode();
+				String nodeName = node.getName();
+				assertTrue(expectedChildren.contains(nodeName));
+				expectedChildren.remove(nodeName);
+			}
+		}
+
+		@Override
+		public void initialize() throws IOException {
+			if (directory.exists()) {
+				FileUtil.delete(directory);
+			}
+			directory.mkdirs();
+			// Make some content ...
+			new File(directory, "dir1").mkdir();
+			addFile("dir1/simple1.json", "data/simple.json");
+			addFile("dir1/simple2.json", "data/simple.json");
+			addFile("dir1/simple3.json", "data/simple.json");
+			addFile("dir1/simple4.json", "data/simple.json");
+			addFile("dir1/simple5.json", "data/simple.json");
+			addFile("dir1/simple6.json", "data/simple.json");
+
+			new File(directory, "dir2").mkdir();
+			addFile("dir2/simple1.json", "data/simple.json");
+			addFile("dir2/simple2.json", "data/simple.json");
+
+			new File(directory, "dir3").mkdir();
+			addFile("dir3/simple1.json", "data/simple.json");
+
+			new File(directory, "dir4").mkdir();
+			addFile("dir4/simple1.json", "data/simple.json");
+			addFile("dir4/simple2.json", "data/simple.json");
+			addFile("dir4/simple3.json", "data/simple.json");
+
+			new File(directory, "dir5").mkdir();
+			addFile("dir5/simple1.json", "data/simple.json");
+			addFile("dir5/simple2.json", "data/simple.json");
+			addFile("dir5/simple3.json", "data/simple.json");
+			addFile("dir5/simple4.json", "data/simple.json");
+			addFile("dir5/simple5.json", "data/simple.json");
+		}
+
+		private void addFile(final String path, final String contentFile)
+				throws IOException {
+			File file = new File(directory, path);
+			IoUtil.write(
+					getClass().getClassLoader()
+							.getResourceAsStream(contentFile),
+					new FileOutputStream(file));
+		}
+
 	}
 
-	@Override
-	public void initialize() throws IOException {
-		if (directory.exists())
-			FileUtil.delete(directory);
-		directory.mkdirs();
-		// Make some content ...
-		addFile("large-file1.png", "data/large-file1.png");
-	}
+	protected class LargeFilesProjection extends Projection {
 
-	private void addFile(String path, String contentFile) throws IOException {
-		File file = new File(directory, path);
-		IoUtil.write(
-				getClass().getClassLoader().getResourceAsStream(contentFile),
-				new FileOutputStream(file));
+		public LargeFilesProjection(final String name,
+				final String directoryPath) {
+			super(name, directoryPath);
+		}
+
+		@Override
+		public void testContent(final Node federatedNode, final String childName)
+				throws RepositoryException {
+			Session session = federatedNode.getSession();
+			String path = federatedNode.getPath() + "/" + childName;
+			assertFolder(session, path, "large-file1.png");
+		}
+
+		private void assertFolder(final Session session, final String path,
+				final String... childrenNames) throws RepositoryException {
+			Node folderNode = session.getNode(path);
+			assertThat(folderNode.getPrimaryNodeType().getName(),
+					is("nt:folder"));
+			List<String> expectedChildren = new ArrayList<String>(
+					Arrays.asList(childrenNames));
+
+			NodeIterator nodes = folderNode.getNodes();
+			assertEquals(expectedChildren.size(), nodes.getSize());
+			while (nodes.hasNext()) {
+				Node node = nodes.nextNode();
+				String nodeName = node.getName();
+				assertTrue(expectedChildren.contains(nodeName));
+				expectedChildren.remove(nodeName);
+			}
+		}
+
+		@Override
+		public void initialize() throws IOException {
+			if (directory.exists()) {
+				FileUtil.delete(directory);
+			}
+			directory.mkdirs();
+			// Make some content ...
+			addFile("large-file1.png", "data/large-file1.png");
+		}
+
+		private void addFile(final String path, final String contentFile)
+				throws IOException {
+			File file = new File(directory, path);
+			IoUtil.write(
+					getClass().getClassLoader()
+							.getResourceAsStream(contentFile),
+					new FileOutputStream(file));
+		}
 	}
 }
