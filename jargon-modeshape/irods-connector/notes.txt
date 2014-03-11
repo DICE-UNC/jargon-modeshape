@@ -3,4 +3,5 @@ http://docs.jboss.org/modeshape/3.7.1.Final/api/
 
 grepcode of file system connector... http://grepcode.com/file/repository.jboss.org/nexus/content/repositories/releases/org.modeshape/modeshape-jcr/3.7.1.Final/org/modeshape/connector/filesystem/FileSystemConnector.java#FileSystemConnector.getDocumentById%28java.lang.String%29
 
+blog entry on custom federation http://modeshape.wordpress.com/2013/01/15/federate-external-data-into-modeshape/
 

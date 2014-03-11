@@ -16,6 +16,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.modeshape.jcr.ModeShapeEngine;
 import org.modeshape.jcr.RepositoryConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IRODSWriteableConnectorRepoTest {
 
@@ -26,6 +28,9 @@ public class IRODSWriteableConnectorRepoTest {
 	private static IRODSTestSetupUtilities irodsTestSetupUtilities = null;
 	private static AssertionHelper assertionHelper = null;
 	private static IRODSFileSystem irodsFileSystem;
+
+	static Logger log = LoggerFactory
+			.getLogger(IRODSWriteableConnectorRepoTest.class);
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -92,6 +97,8 @@ public class IRODSWriteableConnectorRepoTest {
 
 		javax.jcr.Repository repo = engine.deploy(config);
 
+		String repositoryName = config.getName();
+		log.info("repo name:{}", repositoryName);
 		Projection projection = new Projection("readonly-files", projectionDir);
 
 		projection.initialize();

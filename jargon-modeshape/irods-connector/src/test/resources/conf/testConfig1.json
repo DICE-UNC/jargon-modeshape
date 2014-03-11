@@ -12,7 +12,7 @@
         }
     },
     "storage" : {
-        "cacheConfiguration" : "infinispan-configuration.xml",
+        "cacheConfiguration" : "conf/infinispan.xml",
         "cacheName" : "persistentRepository",
         "binaryStorage" : {
             "type" : "file",
@@ -22,8 +22,8 @@
     },
     "externalSources" : {
         "irods" : {
-            "classname" : "filesystem",
-            "directoryPath" : "/test1/home/test1",
+            "classname" : "org.irods.jargon.modeshape.connector.IRODSWriteableConnector",
+            "directoryPath" : "test1/home/test1",
             "projections" : [
                 "default:/rootFolder => /"
             ],
