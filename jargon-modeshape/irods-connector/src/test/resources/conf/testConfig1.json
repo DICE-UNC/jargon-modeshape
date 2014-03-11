@@ -1,5 +1,5 @@
 {
-    "name" : "Persisted-Repository",
+    "name" : "irodsRepo",
     "workspaces" : {
         "predefined" : ["otherWorkspace"],
         "default" : "default",
@@ -13,22 +13,25 @@
     },
     "storage" : {
         "cacheConfiguration" : "infinispan-configuration.xml",
-        "cacheName" : "persisted-repository",
+        "cacheName" : "persistentRepository",
         "binaryStorage" : {
             "type" : "file",
-            "directory": "/",
+            "directory": "target/federation_repository/binaries",
             "minimumBinarySizeInBytes" : 999
         }
     },
     "externalSources" : {
         "irods" : {
-            "classname" : "org.irods.jargon.modeshape.connector.IRODSWriteableConnector",
+            "classname" : "filesystem",
             "directoryPath" : "/test1/home/test1",
-            "projections" : [ "/files" ],
+            "projections" : [
+                "default:/rootFolder => /"
+            ],
             "readOnly" : false,
             "addMimeTypeMixin" : false,
             "exclusionPattern" : ".+[.]tmp$"
         }
-    }
+    } ,
+    "node-types" : ["conf/any-properties.cnd"]
 
 }
