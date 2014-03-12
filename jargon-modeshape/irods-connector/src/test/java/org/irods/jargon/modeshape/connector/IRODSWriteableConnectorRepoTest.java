@@ -79,11 +79,6 @@ public class IRODSWriteableConnectorRepoTest {
 
 		String testDirName = "testCreateAndListADir";
 
-		String absPath = scratchFileUtils
-				.createAndReturnAbsoluteScratchPath(IRODS_TEST_SUBDIR_PATH
-						+ "/" + testDirName);
-		String projectionDir = "/jcr";
-
 		org.modeshape.jcr.ModeShapeEngine engine = new ModeShapeEngine();
 		engine.start();
 		RepositoryConfiguration config = RepositoryConfiguration
@@ -120,13 +115,13 @@ public class IRODSWriteableConnectorRepoTest {
 
 		Node jcrNode = session.getNode("/irodsGrid");
 		def = jcrNode.getDefinition();
-		log.info("jcr node jcrNode:{}", jcrNode);
+		log.info("jcr node irodsGrid:{}", jcrNode);
 
 		iter = jcrNode.getNodes();
 
 		while (iter.hasNext()) {
 			Node next = iter.nextNode();
-			log.info("next node under jcr:{}", next);
+			log.info("next node under irodsGrid:{}", next);
 		}
 
 		session.save();

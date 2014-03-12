@@ -18,6 +18,6 @@
        
         <transaction
             transactionManagerLookupClass="org.infinispan.transaction.lookup.DummyTransactionManagerLookup"
-            transactionMode="TRANSACTIONAL" lockingMode="OPTIMISTIC" />
+            transactionMode="TRANSACTIONAL" lockingMode="PESSIMISTIC" />
     </namedCache>
 </infinispan>
