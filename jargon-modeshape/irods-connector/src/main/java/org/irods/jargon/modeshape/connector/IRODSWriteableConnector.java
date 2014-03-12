@@ -25,6 +25,7 @@ import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.FileNotFoundException;
 import org.irods.jargon.core.exception.JargonException;
+import org.irods.jargon.core.exception.JargonRuntimeException;
 import org.irods.jargon.core.exception.NoResourceDefinedException;
 import org.irods.jargon.core.pub.CollectionAO;
 import org.irods.jargon.core.pub.CollectionAndDataObjectListAndSearchAO;
@@ -76,8 +77,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	public static final Logger log = LoggerFactory
 			.getLogger(IRODSWriteableConnector.class);
 
-	private static final String FILE_SEPARATOR = System
-			.getProperty("file.separator");
+	private static final String FILE_SEPARATOR = "/";
 	private static final String DELIMITER = "/";
 	private static final String NT_FOLDER = "nt:folder";
 	private static final String NT_FILE = "nt:file";
@@ -194,6 +194,44 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			IOException {
 		super.initialize(registry, nodeTypeManager);
 		connectorContext = new ConnectorContext();
+
+		checkFieldNotNull(directoryPath, "directoryPath");
+
+		IRODSFile directoryFile;
+		try {
+			directoryFile = this.connectorContext.getIrodsAccessObjectFactory()
+					.getIRODSFileFactory(getIrodsAccount())
+					.instanceIRODSFile(directoryPath);
+		} catch (JargonException e) {
+			log.error("error initializing JCR repository", e);
+			throw new RepositoryException("error initializing repository", e);
+
+		}
+
+		directory = (File) directoryFile;
+		if (!directory.exists() || !directory.isDirectory()) {
+			String msg = JcrI18n.fileConnectorTopLevelDirectoryMissingOrCannotBeRead
+					.text(getSourceName(), "directoryPath");
+			throw new RepositoryException(msg);
+		}
+		if (!directory.canRead() && !directory.setReadable(true)) {
+			String msg = JcrI18n.fileConnectorTopLevelDirectoryMissingOrCannotBeRead
+					.text(getSourceName(), "directoryPath");
+			throw new RepositoryException(msg);
+		}
+		directoryAbsolutePath = directory.getAbsolutePath();
+		if (!directoryAbsolutePath.endsWith(FILE_SEPARATOR))
+			directoryAbsolutePath = directoryAbsolutePath + FILE_SEPARATOR;
+		directoryAbsolutePathLength = directoryAbsolutePath.length()
+				- FILE_SEPARATOR.length(); // does NOT include the separtor
+
+		// Initialize the filename filter ...
+		filenameFilter = new InclusionExclusionFilenameFilter();
+		if (exclusionPattern != null)
+			filenameFilter.setExclusionPattern(exclusionPattern);
+		if (inclusionPattern != null)
+			filenameFilter.setInclusionPattern(inclusionPattern);
+
 		log.info("getting documentMapper");
 		log.info("initialized");
 
@@ -242,6 +280,9 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * @see #idFor(File)
 	 */
 	protected File fileFor(String id, final boolean closeInFinally) {
+		log.info("fileFor()");
+		log.info("id:{}", id);
+
 		assert id.startsWith(DELIMITER);
 		if (id.endsWith(DELIMITER)) {
 			id = id.substring(0, id.length() - DELIMITER.length());
@@ -588,7 +629,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		String id = path; // this connector treats the ID as the path
 
 		try {
-			File file = fileFor(id, true);
+			File file = fileFor(id, false);
 			return file.exists() ? id : null;
 
 		} finally {
@@ -975,10 +1016,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			avuVals.add(metadata.getAvuAttribute());
 			avuVals.add(metadata.getAvuValue());
 			avuVals.add(metadata.getAvuUnit());
-
 			property = new BasicMultiValueProperty(new BasicName("irods",
 					metadata.getAvuAttribute()), avuVals);
-
 			props.put(property.getName(), property);
 
 		}
@@ -1231,7 +1270,13 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	private IRODSAccount getIrodsAccount() {
 		IRODSAccount irodsAccount = connectorContext.getProxyAccount();
 		if (irodsAccount == null) {
-			throw new IllegalStateException("null irods account");
+			try {
+				irodsAccount = IRODSAccount.instance("fedZone1", 1247, "test1",
+						"test", "", "fedZone1", "");
+			} catch (JargonException e) {
+				throw new JargonRuntimeException(
+						"unable to create irodsAccount", e);
+			}
 		}
 		return irodsAccount;
 	}

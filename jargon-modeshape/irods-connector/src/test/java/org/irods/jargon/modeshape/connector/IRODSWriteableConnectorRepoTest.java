@@ -4,6 +4,8 @@ import java.util.Properties;
 import java.util.concurrent.Future;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.nodetype.NodeDefinition;
 
 import org.irods.jargon.core.pub.IRODSFileSystem;
 import org.irods.jargon.testutils.AssertionHelper;
@@ -80,7 +82,7 @@ public class IRODSWriteableConnectorRepoTest {
 		String absPath = scratchFileUtils
 				.createAndReturnAbsoluteScratchPath(IRODS_TEST_SUBDIR_PATH
 						+ "/" + testDirName);
-		String projectionDir = absPath + "target/federation/files-read";
+		String projectionDir = "/jcr";
 
 		org.modeshape.jcr.ModeShapeEngine engine = new ModeShapeEngine();
 		engine.start();
@@ -99,16 +101,37 @@ public class IRODSWriteableConnectorRepoTest {
 
 		String repositoryName = config.getName();
 		log.info("repo name:{}", repositoryName);
-		Projection projection = new Projection("readonly-files", projectionDir);
+		// Projection projection = new Projection("readonly-files",
+		// projectionDir);
 
-		projection.initialize();
+		// projection.initialize();
 		javax.jcr.Session session = repo.login("default");
 
-		Node testRoot = session.getRootNode().addNode("testRoot");
-		testRoot.addNode("node1");
+		Node rootNodeIrods = session.getNode("/");
+		NodeDefinition def = rootNodeIrods.getDefinition();
+		log.info("root node def:{}", def);
+
+		NodeIterator iter = rootNodeIrods.getNodes();
+
+		while (iter.hasNext()) {
+			Node next = iter.nextNode();
+			log.info("next node:{}", next);
+		}
+
+		Node jcrNode = session.getNode("/irodsGrid");
+		def = jcrNode.getDefinition();
+		log.info("jcr node jcrNode:{}", jcrNode);
+
+		iter = jcrNode.getNodes();
+
+		while (iter.hasNext()) {
+			Node next = iter.nextNode();
+			log.info("next node under jcr:{}", next);
+		}
+
 		session.save();
 
-		projection.create(testRoot, "readonly");
+		// projection.create(testRoot, "readonly");
 
 		Future<Boolean> future = engine.shutdown();
 		if (future.get()) { // optional, but blocks until engine is completely

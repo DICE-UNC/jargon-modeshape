@@ -1,4 +1,4 @@
-{
+ {
     "name" : "irodsRepo",
     "workspaces" : {
         "predefined" : ["otherWorkspace"],
@@ -23,9 +23,9 @@
     "externalSources" : {
         "irods" : {
             "classname" : "org.irods.jargon.modeshape.connector.IRODSWriteableConnector",
-            "directoryPath" : "test1/home/test1",
+            "directoryPath" : "/fedZone1/home/test1/jcr",
             "projections" : [
-                "default:/rootFolder => /"
+                "default:/irodsGrid => /"
             ],
             "readOnly" : false,
             "addMimeTypeMixin" : false,
