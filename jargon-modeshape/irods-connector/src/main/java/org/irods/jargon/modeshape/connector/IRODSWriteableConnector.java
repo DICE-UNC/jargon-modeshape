@@ -36,8 +36,6 @@ import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.core.pub.io.IRODSFileFactory;
 import org.irods.jargon.core.query.JargonQueryException;
 import org.irods.jargon.core.query.MetaDataAndDomainData;
-import org.irods.jargon.core.utils.CollectionAndPath;
-import org.irods.jargon.core.utils.MiscIRODSUtils;
 import org.modeshape.common.util.IoUtil;
 import org.modeshape.common.util.SecureHash;
 import org.modeshape.common.util.StringUtil;
@@ -141,7 +139,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	/**
 	 * The maximum number of children a folder will expose at any given time.
 	 */
-	private final int pageSize = 20;
+	private final int pageSize = 5000;
 
 	/**
 	 * The {@link FilenameFilter} implementation that is instantiated in the
@@ -291,10 +289,16 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			id = id.substring(0, id.length() - JCR_CONTENT_SUFFIX_LENGTH);
 		}
 
+		/*
+		 * String myDir = directory.getAbsolutePath().substring(0,
+		 * directory.getAbsolutePath().leid.length());
+		 * 
+		 * log.info("myDir:{}", myDir);
+		 */
 		try {
 			return (File) getConnectorContext().getIrodsAccessObjectFactory()
 					.getIRODSFileFactory(getIrodsAccount())
-					.instanceIRODSFile(directory.getAbsolutePath(), id);
+					.instanceIRODSFile(directoryAbsolutePath, id);
 		} catch (JargonException e) {
 			log.error("error getting irods file", e);
 			throw new ConnectorException(e);
@@ -438,7 +442,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 *             if there is an error creating the URL
 	 */
 	protected URL createUrlForFile(final File file) throws IOException {
-		return file.toURI().toURL();
+		return ((IRODSFile) file).toFileBasedURL();
 	}
 
 	protected File createFileForUrl(final URL url) throws URISyntaxException {
@@ -566,7 +570,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			// Add the extra properties (if there are any), overwriting any
 			// properties with the same names
 			// (e.g., jcr:primaryType, jcr:mixinTypes, jcr:mimeType, etc.) ...
-			writer.addProperties(extraPropertiesStore().getProperties(id));
+			writer.addProperties(getProperties(id));
 
 			// Add the 'mix:mixinType' mixin; if other mixins are stored in the
 			// extra properties, this will append ...
@@ -959,31 +963,45 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * .lang.String)
 	 */
 	@Override
-	public Map<Name, Property> getProperties(final String arg0) {
+	public Map<Name, Property> getProperties(final String id) {
+
 		try {
+			File fileForProps;
+			if (this.isRoot(id)) {
+				fileForProps = (File) this.connectorContext
+						.getIrodsAccessObjectFactory()
+						.getIRODSFileFactory(this.getIrodsAccount())
+						.instanceIRODSFile(this.directoryAbsolutePath);
+			} else {
+				fileForProps = (File) this.connectorContext
+						.getIrodsAccessObjectFactory()
+						.getIRODSFileFactory(this.getIrodsAccount())
+						.instanceIRODSFile(this.directoryAbsolutePath, id);
+			}
+
 			CollectionAndDataObjectListAndSearchAO collectionAndDataObjectListAndSearchAO = connectorContext
 					.getIrodsAccessObjectFactory()
 					.getCollectionAndDataObjectListAndSearchAO(
 							getIrodsAccount());
 
+			log.info("getting properties for:{}", fileForProps);
+
 			ObjStat objStat = collectionAndDataObjectListAndSearchAO
-					.retrieveObjectStatForPath(arg0);
+					.retrieveObjectStatForPath(fileForProps.getAbsolutePath());
 
 			if (objStat.isSomeTypeOfCollection()) {
-				return getPropertiesForCollection(arg0);
+				return getPropertiesForCollection(fileForProps
+						.getAbsolutePath());
 			} else {
-				CollectionAndPath collectionAndPath = MiscIRODSUtils
-						.separateCollectionAndPathFromGivenAbsolutePath(arg0);
-				return getPropertiesForDataObject(
-						collectionAndPath.getCollectionParent(),
-						collectionAndPath.getChildName());
-			}
 
+				return getPropertiesForDataObject(fileForProps.getParent(),
+						fileForProps.getName());
+			}
 		} catch (JargonException e) {
-			throw new DocumentStoreException(arg0, "error getting properties");
+			throw new DocumentStoreException(id, "error getting properties");
 
 		} catch (JargonQueryException e) {
-			throw new DocumentStoreException(arg0, "error getting properties");
+			throw new DocumentStoreException(id, "error getting properties");
 
 		} finally {
 			getConnectorContext().getIrodsAccessObjectFactory()
