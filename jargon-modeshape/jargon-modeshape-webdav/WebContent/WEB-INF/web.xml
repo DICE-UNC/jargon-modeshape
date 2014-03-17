@@ -28,7 +28,7 @@
      -->
     <context-param>
         <param-name>org.modeshape.jcr.URL</param-name>
-        <param-value>config/testConfig1.json</param-value>
+        <param-value>file:///C:/Users/Mike/Documents/workspace-development-github/jargon-modeshape/jargon-modeshape/jargon-modeshape-webdav/src/main/resources/config/testConfig1.json</param-value>
     </context-param>
 
     <!--
@@ -89,8 +89,8 @@
          -->
     <context-param>
         <param-name>org.modeshape.web.jcr.webdav.REQUEST_RESOLVER_CLASS_NAME</param-name>
-        <param-value>org.modeshape.web.jcr.webdav.MultiRepositoryRequestResolver</param-value>
-        <!--param-value>org.modeshape.web.jcr.webdav.SingleRepositoryRequestResolver</param-value-->
+        <!-- <param-value>org.modeshape.web.jcr.webdav.MultiRepositoryRequestResolver</param-value>-->
+       <param-value>org.modeshape.web.jcr.webdav.SingleRepositoryRequestResolver</param-value>
     </context-param>
 
     <!--
@@ -98,12 +98,17 @@
              It provides the name of the JCR repository that will be accessed.  An exception
              will be thrown if no value is provided for this parameter.
          -->
-    <!--
+   
     <context-param>
         <param-name>org.modeshape.web.jcr.webdav.SINGLE_REPOSITORY_RESOLVER_REPOSITORY_NAME</param-name>
-        <param-value>mode:repository</param-value>
+        <param-value>irodsRepo</param-value>
     </context-param>
-    -->
+    
+      <context-param>
+    <param-name>org.modeshape.web.jcr.webdav.SINGLE_REPOSITORY_RESOLVER_WORKSPACE_NAME</param-name>
+        <param-value>default</param-value>
+     </context-param>
+        
 
     <!--
              This parameter is required if (and only if) the SingleRepositoryRequestResolver is used.

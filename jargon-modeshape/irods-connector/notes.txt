@@ -7,3 +7,5 @@ blog entry on custom federation http://modeshape.wordpress.com/2013/01/15/federa
 
 jcr node types: https://docs.jboss.org/author/display/MODE/Built-in+node+types
 
+json config schema: https://github.com/ModeShape/modeshape/blob/modeshape-3.7.1.Final/modeshape-jcr/src/main/resources/org/modeshape/jcr/repository-config-schema.json
+

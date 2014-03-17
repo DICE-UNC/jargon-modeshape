@@ -13,20 +13,23 @@ import javax.jcr.nodetype.NodeDefinition;
 import junit.framework.Assert;
 
 import org.irods.jargon.core.connection.IRODSAccount;
+import org.irods.jargon.core.pub.DataObjectAO;
+import org.irods.jargon.core.pub.DataTransferOperations;
 import org.irods.jargon.core.pub.IRODSFileSystem;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.testutils.AssertionHelper;
 import org.irods.jargon.testutils.IRODSTestSetupUtilities;
 import org.irods.jargon.testutils.TestingPropertiesHelper;
+import org.irods.jargon.testutils.filemanip.FileGenerator;
 import org.irods.jargon.testutils.filemanip.ScratchFileUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.modeshape.common.util.StringUtil;
 import org.modeshape.jcr.ModeShapeEngine;
 import org.modeshape.jcr.RepositoryConfiguration;
 import org.modeshape.jcr.api.Binary;
-import org.modeshape.jcr.api.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,48 +105,64 @@ public class IRODSWriteableConnectorRepoTest {
 
 	@Test
 	public void testFileURIBased() throws Exception {
-		String childName = "largeFiles";
-		Session session = (Session) testRoot.getSession();
-		String path = testRoot.getPath() + "/" + childName;
 
-		Node files = session.getNode(path);
-		assertThat(files.getName(), is(childName));
-		assertThat(files.getPrimaryNodeType().getName(), is("nt:folder"));
-		long before = System.currentTimeMillis();
-		Node node1 = session.getNode(path + "/large-file1.png");
-		long after = System.currentTimeMillis();
-		long elapsed = after - before;
-		assertThat(node1.getName(), is("large-file1.png"));
-		assertThat(node1.getPrimaryNodeType().getName(), is("nt:file"));
-		System.out.println("  elapsed getting nt:file:" + elapsed);
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
 
-		before = System.currentTimeMillis();
-		Node node1Content = node1.getNode("jcr:content");
-		after = System.currentTimeMillis();
-		elapsed = after - before;
-		;
+		String targetIrodsCollection = testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH);
+
+		String testFileName = "testFileURIBased.txt";
+		String absPath = scratchFileUtils
+				.createAndReturnAbsoluteScratchPath(IRODS_TEST_SUBDIR_PATH);
+		String fileNameOrig = FileGenerator.generateFileOfFixedLengthGivenName(
+				absPath, testFileName, 2);
+
+		DataTransferOperations dto = irodsFileSystem
+				.getIRODSAccessObjectFactory().getDataTransferOperations(
+						irodsAccount);
+		dto.putOperation(fileNameOrig, targetIrodsCollection, testingProperties
+				.getProperty(TestingPropertiesHelper.IRODS_RESOURCE_KEY), null,
+				null);
+
+		Node rootNode = session
+				.getNode("/irodsGrid/"
+						+ testingProperties
+								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+						+ "/" + IRODS_TEST_SUBDIR_PATH);
+
+		Node node = session
+				.getNode("/irodsGrid/"
+						+ testingProperties
+								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+						+ "/" + IRODS_TEST_SUBDIR_PATH + "/" + testFileName);
+
+		assertThat(rootNode.getName(), is(IRODS_TEST_SUBDIR_PATH));
+		assertThat(rootNode.getPrimaryNodeType().getName(), is("nt:folder"));
+
+		assertThat(node.getName(), is(testFileName));
+		assertThat(node.getPrimaryNodeType().getName(), is("nt:file"));
+
+		Node node1Content = node.getNode("jcr:content");
+
 		assertThat(node1Content.getName(), is("jcr:content"));
 		assertThat(node1Content.getPrimaryNodeType().getName(),
 				is("nt:resource"));
-		System.out.println("  elapsed getting jcr:content:" + elapsed);
 
 		Binary binary = (Binary) node1Content.getProperty("jcr:data")
 				.getBinary();
-		before = System.currentTimeMillis();
 		String dsChecksum = binary.getHexHash();
-		after = System.currentTimeMillis();
-		elapsed = after - before;
-		System.out.println("  Hash from Value object: " + dsChecksum);
-		System.out.println("  elapsed getting hash from Value object:"
-				+ elapsed);
 
-		before = System.currentTimeMillis();
-		dsChecksum = binary.getHexHash();
-		after = System.currentTimeMillis();
-		elapsed = after - before;
-		System.out
-				.println("  elapsed getting hash from Value object already computed:"
-						+ elapsed);
+		DataObjectAO dataObjectAO = irodsFileSystem
+				.getIRODSAccessObjectFactory().getDataObjectAO(irodsAccount);
+		IRODSFile testFile = irodsFileSystem.getIRODSFileFactory(irodsAccount)
+				.instanceIRODSFile(targetIrodsCollection + '/' + testFileName);
+		byte[] computedChecksum = dataObjectAO
+				.computeSHA1ChecksumOfIrodsFileByReadingDataFromStream(testFile
+						.getAbsolutePath());
+		Assert.assertEquals("checksum mismatch",
+				StringUtil.getHexString(computedChecksum), dsChecksum);
 	}
 
 	@Test

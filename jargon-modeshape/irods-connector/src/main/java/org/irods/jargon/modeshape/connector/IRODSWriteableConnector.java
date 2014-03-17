@@ -413,8 +413,15 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	protected String sha1(final File file) {
 		try {
 			if (contentBasedSha1()) {
-				byte[] hash = SecureHash.getHash(SecureHash.Algorithm.SHA_1,
-						file);
+				log.info("content based SHA1, computing for {} ...",
+						file.getAbsolutePath());
+				DataObjectAO dataObjectAO = connectorContext
+						.getIrodsAccessObjectFactory().getDataObjectAO(
+								getIrodsAccount());
+
+				byte[] hash = dataObjectAO
+						.computeSHA1ChecksumOfIrodsFileByReadingDataFromStream(file
+								.getAbsolutePath());
 				return StringUtil.getHexString(hash);
 			} else {
 				return SecureHash.sha1(createUrlForFile(file).toString());
@@ -451,9 +458,9 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 			IRODSFileFactory irodsFileFactory = connectorContext
 					.getIrodsAccessObjectFactory().getIRODSFileFactory(
-							connectorContext.getProxyAccount());
+							getIrodsAccount());
 
-			String stringFormOfUrl = url.toExternalForm();
+			String stringFormOfUrl = url.getPath();
 
 			IRODSFile irodsFile = irodsFileFactory
 					.instanceIRODSFile(stringFormOfUrl);
@@ -963,7 +970,19 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * .lang.String)
 	 */
 	@Override
-	public Map<Name, Property> getProperties(final String id) {
+	public Map<Name, Property> getProperties(String id) {
+
+		/*
+		 * /fedZone1/home/test1/jargon-scratch/IRODSWriteableConnectorRepoTest/
+		 * testFileURIBased.txt/jcr:content
+		 */
+
+		if (id.endsWith(DELIMITER)) {
+			id = id.substring(0, id.length() - DELIMITER.length());
+		}
+		if (isContentNode(id)) {
+			id = id.substring(0, id.length() - JCR_CONTENT_SUFFIX_LENGTH);
+		}
 
 		try {
 			File fileForProps;
@@ -1289,11 +1308,10 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		IRODSAccount irodsAccount = connectorContext.getProxyAccount();
 		if (irodsAccount == null) {
 			try {
-				// irodsAccount = IRODSAccount.instance("fedZone1", 1247,
-				// "test1",
-				// "test", "", "fedZone1", "");
-				irodsAccount = IRODSAccount.instance("localhost", 1247,
-						"test1", "test", "", "test1", "");
+				irodsAccount = IRODSAccount.instance("fedZone1", 1247, "test1",
+						"test", "", "fedZone1", "");
+				// irodsAccount = IRODSAccount.instance("localhost", 1247,
+				// "test1", "test", "", "test1", "");
 			} catch (JargonException e) {
 				throw new JargonRuntimeException(
 						"unable to create irodsAccount", e);

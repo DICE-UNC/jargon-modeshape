@@ -8,11 +8,12 @@
     "security" : {
         "anonymous" : {
             "roles" : ["readonly","readwrite","admin"],
-            "useOnFailedLogin" : false
-        }
+            "useOnFailedLogin" : true
+        },
+        
     },
     "storage" : {
-        "cacheConfiguration" : "conf/infinispan.xml",
+        "cacheConfiguration" : "config/infinispan.xml",
         "cacheName" : "persistentRepository",
         "binaryStorage" : {
             "type" : "file",

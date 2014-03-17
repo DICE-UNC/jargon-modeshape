@@ -78,7 +78,7 @@
 		<repository>
 			<id>jboss</id>
 			<name>jboss.repository</name>
-			<url>https://maven.atlassian.com/content/repositories/</url>
+			<url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/</url>
 			<releases>
 				<enabled>true</enabled>
 				<updatePolicy>always</updatePolicy>
