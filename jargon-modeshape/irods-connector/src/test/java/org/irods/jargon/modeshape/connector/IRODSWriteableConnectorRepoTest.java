@@ -161,8 +161,47 @@ public class IRODSWriteableConnectorRepoTest {
 		byte[] computedChecksum = dataObjectAO
 				.computeSHA1ChecksumOfIrodsFileByReadingDataFromStream(testFile
 						.getAbsolutePath());
+		session.save();
 		Assert.assertEquals("checksum mismatch",
 				StringUtil.getHexString(computedChecksum), dsChecksum);
+	}
+
+	@Test
+	public void testRemoveDocument() throws Exception {
+
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
+
+		String targetIrodsCollection = testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH);
+
+		String testFileName = "testRemoveDocument.txt";
+		String absPath = scratchFileUtils
+				.createAndReturnAbsoluteScratchPath(IRODS_TEST_SUBDIR_PATH);
+		String fileNameOrig = FileGenerator.generateFileOfFixedLengthGivenName(
+				absPath, testFileName, 2);
+
+		DataTransferOperations dto = irodsFileSystem
+				.getIRODSAccessObjectFactory().getDataTransferOperations(
+						irodsAccount);
+		dto.putOperation(fileNameOrig, targetIrodsCollection, testingProperties
+				.getProperty(TestingPropertiesHelper.IRODS_RESOURCE_KEY), null,
+				null);
+
+		Node node = session
+				.getNode("/irodsGrid/"
+						+ testingProperties
+								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+						+ "/" + IRODS_TEST_SUBDIR_PATH + "/" + testFileName);
+
+		node.remove();
+
+		IRODSFile actual = irodsFileSystem.getIRODSFileFactory(irodsAccount)
+				.instanceIRODSFile(targetIrodsCollection, testFileName);
+
+		Assert.assertFalse("file does not exist", actual.exists());
+
 	}
 
 	@Test
@@ -192,6 +231,7 @@ public class IRODSWriteableConnectorRepoTest {
 		assertThat(node.getPrimaryNodeType().getName(), is("nt:folder"));
 		assertThat(node.getProperty("jcr:created").getLong(),
 				is(dir.lastModified()));
+		session.save();
 	}
 
 	@Test
