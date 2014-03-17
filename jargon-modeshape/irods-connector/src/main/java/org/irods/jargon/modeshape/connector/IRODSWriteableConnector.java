@@ -1289,8 +1289,11 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		IRODSAccount irodsAccount = connectorContext.getProxyAccount();
 		if (irodsAccount == null) {
 			try {
-				irodsAccount = IRODSAccount.instance("fedZone1", 1247, "test1",
-						"test", "", "fedZone1", "");
+				// irodsAccount = IRODSAccount.instance("fedZone1", 1247,
+				// "test1",
+				// "test", "", "fedZone1", "");
+				irodsAccount = IRODSAccount.instance("localhost", 1247,
+						"test1", "test", "", "test1", "");
 			} catch (JargonException e) {
 				throw new JargonRuntimeException(
 						"unable to create irodsAccount", e);

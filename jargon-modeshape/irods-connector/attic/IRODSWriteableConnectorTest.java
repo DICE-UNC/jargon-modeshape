@@ -156,6 +156,9 @@ public class IRODSWriteableConnectorTest extends SingleUseAbstractTest {
 
 	protected void assertFolder(final Node node, final File dir)
 			throws RepositoryException {
+		
+		
+		
 		assertThat(dir.exists(), is(true));
 		assertThat(dir.canRead(), is(true));
 		assertThat(dir.isDirectory(), is(true));
