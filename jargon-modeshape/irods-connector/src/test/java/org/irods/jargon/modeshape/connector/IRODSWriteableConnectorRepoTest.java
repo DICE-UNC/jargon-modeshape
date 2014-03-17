@@ -100,6 +100,7 @@ public class IRODSWriteableConnectorRepoTest {
 
 	@Before
 	public void before() throws Exception {
+		session.refresh(true);
 
 	}
 
@@ -125,6 +126,10 @@ public class IRODSWriteableConnectorRepoTest {
 		dto.putOperation(fileNameOrig, targetIrodsCollection, testingProperties
 				.getProperty(TestingPropertiesHelper.IRODS_RESOURCE_KEY), null,
 				null);
+
+		session.refresh(false);
+
+		Thread.sleep(10000);
 
 		Node rootNode = session
 				.getNode("/irodsGrid/"
@@ -189,6 +194,10 @@ public class IRODSWriteableConnectorRepoTest {
 				.getProperty(TestingPropertiesHelper.IRODS_RESOURCE_KEY), null,
 				null);
 
+		session.refresh(false);
+
+		Thread.sleep(10000);
+
 		Node node = session
 				.getNode("/irodsGrid/"
 						+ testingProperties
@@ -196,6 +205,7 @@ public class IRODSWriteableConnectorRepoTest {
 						+ "/" + IRODS_TEST_SUBDIR_PATH + "/" + testFileName);
 
 		node.remove();
+		session.save();
 
 		IRODSFile actual = irodsFileSystem.getIRODSFileFactory(irodsAccount)
 				.instanceIRODSFile(targetIrodsCollection, testFileName);

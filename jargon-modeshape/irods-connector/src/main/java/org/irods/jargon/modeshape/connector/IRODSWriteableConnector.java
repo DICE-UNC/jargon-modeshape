@@ -606,6 +606,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		File[] children = file.listFiles(filenameFilter);
 		long totalChildren = 0;
 		int nextOffset = 0;
+		log.info("parent is:{}", file.getAbsolutePath());
 		for (int i = 0; i < children.length; i++) {
 			File child = children[i];
 			// Only include as a child if we can access and read the file.
@@ -623,11 +624,16 @@ public class IRODSWriteableConnector extends WritableConnector implements
 					String childName = child.getName();
 					String childId = root ? DELIMITER + childName : id
 							+ DELIMITER + childName;
+
 					writer.addChild(childId, childName);
-					nextOffset = i + 1;
+
+					log.info("added child directory with name:{}", childName);
+
 				}
+				nextOffset = i + 1;
 			}
 		}
+
 		// if there are still accessible children add the next page
 		if (nextOffset < totalChildren) {
 			writer.addPage(id, nextOffset, pageSize, totalChildren);

@@ -17,7 +17,7 @@
         "binaryStorage" : {
             "type" : "file",
             "directory": "target/federation_repository/binaries",
-            "minimumBinarySizeInBytes" : 999
+            "minimumBinarySizeInBytes" : 0
         }
     },
     "externalSources" : {
