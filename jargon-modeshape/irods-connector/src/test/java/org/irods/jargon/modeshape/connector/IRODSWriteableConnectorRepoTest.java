@@ -194,9 +194,7 @@ public class IRODSWriteableConnectorRepoTest {
 				.getProperty(TestingPropertiesHelper.IRODS_RESOURCE_KEY), null,
 				null);
 
-		session.refresh(false);
-
-		Thread.sleep(10000);
+		session.refresh(true);
 
 		Node node = session
 				.getNode("/irodsGrid/"

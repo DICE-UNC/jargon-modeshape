@@ -29,6 +29,7 @@
             ],
             "readOnly" : false,
             "addMimeTypeMixin" : false,
+             "cacheTtlSeconds" : 0,
             "exclusionPattern" : ".+[.]tmp$"
         }
     } ,
