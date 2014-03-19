@@ -4,25 +4,41 @@ ConnectorVersion.java
 *.jar
 *.war
 *.ear
-
-**/.classpath
-*/.DS_Store
-**.DS_Store
-**/nb-configuration.xml
-**/.springBeans
-**/testing.properties
-.project
-.metadata
-.DS_Store
-Servers
-.settings
-.classpath
-target
-bin
-*.war
 *.log
-*/nbactions.xml  
-nbactions.xml
-testing.properties
-*/test-output
-JargonVersion.java
+
+.classpath
+.project
+.settings/
+target/
+
+
+*.pydevproject
+.metadata
+.gradle
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# CDT-specific
+.cproject
+
+# PDT-specific
+.buildpath
+
+# sbteclipse plugin 
+.target
+
+# TeXlipse plugin
+.texlipse

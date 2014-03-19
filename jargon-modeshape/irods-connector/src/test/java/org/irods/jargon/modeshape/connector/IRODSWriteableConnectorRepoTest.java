@@ -3,6 +3,11 @@ package org.irods.jargon.modeshape.connector;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.Calendar;
 import java.util.Properties;
 import java.util.concurrent.Future;
 
@@ -169,6 +174,166 @@ public class IRODSWriteableConnectorRepoTest {
 		session.save();
 		Assert.assertEquals("checksum mismatch",
 				StringUtil.getHexString(computedChecksum), dsChecksum);
+	}
+
+	@Test
+	public void storeDocumentFile() throws Exception {
+		String testFolder = "storeDocumentFile";
+		String testFileName = "storeDocumentFileData.txt";
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
+
+		String newFolderIrodsParentCollection = testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH + "/"
+								+ testFolder);
+
+		session.refresh(true);
+
+		Node parentNode = session
+				.getNode("/irodsGrid/"
+						+ testingProperties
+								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+						+ "/" + IRODS_TEST_SUBDIR_PATH);
+
+		// Create a new folder node ...
+		Node newParent = parentNode.addNode(testFolder, "nt:folder");
+
+		// create file under parent node
+		String absPath = scratchFileUtils
+				.createAndReturnAbsoluteScratchPath(IRODS_TEST_SUBDIR_PATH);
+		String fileNameOrig = FileGenerator.generateFileOfFixedLengthGivenName(
+				absPath, testFileName, 200);
+		File newFile = new File(fileNameOrig);
+
+		Calendar lastModified = Calendar.getInstance();
+		lastModified.setTimeInMillis(newFile.lastModified());
+
+		// Create a buffered input stream for the file's contents ...
+		InputStream stream = new BufferedInputStream(new FileInputStream(
+				newFile));
+
+		// Create an 'nt:file' node at the supplied path ...
+		Node fileNode = newParent.addNode(newFile.getName(), "nt:file");
+
+		// Upload the file to that node ...
+		Node contentNode = fileNode.addNode("jcr:content", "nt:resource");
+		javax.jcr.Binary binary = session.getValueFactory()
+				.createBinary(stream);
+		contentNode.setProperty("jcr:data", binary);
+		contentNode.setProperty("jcr:lastModified", lastModified);
+
+		// The auto-created properties are added when the session is saved ...
+		session.save();
+
+		IRODSFile actualFile = irodsFileSystem
+				.getIRODSFileFactory(irodsAccount).instanceIRODSFile(
+						newFolderIrodsParentCollection, testFileName);
+
+		Assert.assertTrue("did not add file", actualFile.exists());
+		Assert.assertTrue("did not add as data object", actualFile.isFile());
+
+	}
+
+	@Test
+	public void moveDocumentFile() throws Exception {
+		String testFolder = "moveDocumentFile";
+		String targetFolder = "moveDocumentFileTarget";
+		String testFileName = "moveDocumentFileData.txt";
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
+
+		String newFolderIrodsTargetCollection = testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH + "/"
+								+ targetFolder);
+
+		session.refresh(true);
+
+		Node parentNode = session
+				.getNode("/irodsGrid/"
+						+ testingProperties
+								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+						+ "/" + IRODS_TEST_SUBDIR_PATH);
+
+		// Create a new folder node ...
+		Node newParent = parentNode.addNode(testFolder, "nt:folder");
+		Node targetParent = parentNode.addNode(targetFolder, "nt:folder");
+
+		// create file under parent node
+		String absPath = scratchFileUtils
+				.createAndReturnAbsoluteScratchPath(IRODS_TEST_SUBDIR_PATH);
+		String fileNameOrig = FileGenerator.generateFileOfFixedLengthGivenName(
+				absPath, testFileName, 200);
+		File newFile = new File(fileNameOrig);
+
+		Calendar lastModified = Calendar.getInstance();
+		lastModified.setTimeInMillis(newFile.lastModified());
+
+		// Create a buffered input stream for the file's contents ...
+		InputStream stream = new BufferedInputStream(new FileInputStream(
+				newFile));
+
+		// Create an 'nt:file' node at the supplied path ...
+		Node fileNode = newParent.addNode(newFile.getName(), "nt:file");
+
+		// Upload the file to that node ...
+		Node contentNode = fileNode.addNode("jcr:content", "nt:resource");
+		javax.jcr.Binary binary = session.getValueFactory()
+				.createBinary(stream);
+		contentNode.setProperty("jcr:data", binary);
+		contentNode.setProperty("jcr:lastModified", lastModified);
+
+		// move that new file to a different parent
+
+		String fileNodePath = fileNode.getPath();
+		String targetNodePath = targetParent.getPath() + "/" + testFileName;
+
+		session.save();
+
+		session.move(fileNodePath, targetNodePath);
+
+		// The auto-created properties are added when the session is saved ...
+		session.save();
+
+		IRODSFile actualFile = irodsFileSystem
+				.getIRODSFileFactory(irodsAccount).instanceIRODSFile(
+						newFolderIrodsTargetCollection, testFileName);
+
+		Assert.assertTrue("did not move file to target", actualFile.exists());
+	}
+
+	@Test
+	public void storeDocumentCollection() throws Exception {
+		String testFolder = "storeDocumentCollection";
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
+
+		String targetIrodsParentCollection = testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH);
+
+		session.refresh(true);
+
+		Node parentNode = session
+				.getNode("/irodsGrid/"
+						+ testingProperties
+								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+						+ "/" + IRODS_TEST_SUBDIR_PATH);
+
+		// Create a new folder node ...
+		Node actual = parentNode.addNode(testFolder, "nt:folder");
+
+		// The auto-created properties are added when the session is saved ...
+		session.save();
+
+		IRODSFile actualFile = irodsFileSystem
+				.getIRODSFileFactory(irodsAccount).instanceIRODSFile(
+						targetIrodsParentCollection, testFolder);
+
+		Assert.assertTrue("did not add folder", actualFile.exists());
+		Assert.assertTrue("did not add as collection", actualFile.isDirectory());
+
 	}
 
 	@Test

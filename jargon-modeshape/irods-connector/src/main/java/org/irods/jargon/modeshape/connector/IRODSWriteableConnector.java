@@ -802,14 +802,25 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	@Override
 	public void updateDocument(final DocumentChanges documentChanges) {
 
+		log.info("updateDocument()");
+
+		assert documentChanges != null;
+
+		log.info("documentChanges:{}", documentChanges);
+
 		try {
 
 			String id = documentChanges.getDocumentId();
+
+			log.info("id for doc changes:{}", id);
 
 			Document document = documentChanges.getDocument();
 			DocumentReader reader = readDocument(document);
 
 			File file = fileFor(id, false);
+
+			log.info("file for id:{}", file);
+
 			String idOrig = id;
 
 			// if we're dealing with the root of the connector, we can't process
@@ -817,25 +828,44 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			// moves/removes because that would go "outside" the
 			// connector scope
 			if (!isRoot(id)) {
+
+				log.info("not root....");
+
 				String parentId = reader.getParentIds().get(0);
+				log.info("parent id:{}", parentId);
 				File parent = file.getParentFile();
+				log.info("parent:{}", parent);
 				String newParentId = idFor(parent);
+				log.info("new parentId:{}", newParentId);
+
 				if (!parentId.equals(newParentId)) {
 					// The node has a new parent (via the 'update' method),
 					// meaning
 					// it was moved ...
-					File newParent = fileFor(newParentId, false);
+
+					log.info("node was moved...");
+
+					File newParent = fileFor(parentId, false);
+					log.info("file for new parent:{}", newParent);
+
 					File newFile;
 					try {
 						newFile = (File) connectorContext
 								.getIrodsAccessObjectFactory()
 								.getIRODSFileFactory(getIrodsAccount())
 								.instanceIRODSFile(newParent, file.getName());
+
+						log.info("new file:{}", newFile);
+
 					} catch (JargonException e) {
 						throw new DocumentStoreException(id, e);
 
 					}
-					file.renameTo(newFile);
+
+					log.info("renaming....");
+					((IRODSFile) file).renameTo((IRODSFile) newFile);
+					log.info("rename done to :{}", newFile);
+
 					if (!parent.exists()) {
 						parent.mkdirs(); // in case they were removed since we
 											// created them ...
@@ -866,12 +896,18 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				}
 			}
 
+			log.info("processing children renames...");
+
 			// children renames have to be processed in the parent
 			DocumentChanges.ChildrenChanges childrenChanges = documentChanges
 					.getChildrenChanges();
 			Map<String, Name> renamedChildren = childrenChanges.getRenamed();
 			for (String renamedChildId : renamedChildren.keySet()) {
+
+				log.info("renamed child id:{}", renamedChildId);
+
 				File child = fileFor(renamedChildId, false);
+				log.info("child:{}", child);
 				Name newName = renamedChildren.get(renamedChildId);
 				String newNameStr = getContext().getValueFactories()
 						.getStringFactory().create(newName);
@@ -881,11 +917,12 @@ public class IRODSWriteableConnector extends WritableConnector implements
 							.getIrodsAccessObjectFactory()
 							.getIRODSFileFactory(getIrodsAccount())
 							.instanceIRODSFile(file, newNameStr);
+					log.info("renamedChild:{}", renamedChild);
 				} catch (JargonException e) {
 					throw new DocumentStoreException(id, e);
 				}
 
-				if (!child.renameTo(renamedChild)) {
+				if (!((IRODSFile) child).renameTo((IRODSFile) renamedChild)) {
 					getLogger().debug("Cannot rename {0} to {1}", child,
 							renamedChild);
 				}
