@@ -13,14 +13,19 @@ import java.util.concurrent.Future;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
 import javax.jcr.nodetype.NodeDefinition;
 
 import junit.framework.Assert;
 
 import org.irods.jargon.core.connection.IRODSAccount;
+import org.irods.jargon.core.pub.CollectionAO;
 import org.irods.jargon.core.pub.DataObjectAO;
 import org.irods.jargon.core.pub.DataTransferOperations;
+import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.pub.IRODSFileSystem;
+import org.irods.jargon.core.pub.domain.AvuData;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.testutils.AssertionHelper;
 import org.irods.jargon.testutils.IRODSTestSetupUtilities;
@@ -374,6 +379,58 @@ public class IRODSWriteableConnectorRepoTest {
 				.instanceIRODSFile(targetIrodsCollection, testFileName);
 
 		Assert.assertFalse("file does not exist", actual.exists());
+
+	}
+
+	@Test
+	public void testFolderWithAVUs() throws Exception {
+
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
+
+		String targetIrodsCollection = testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH);
+
+		String testCollectionName = "testFolderWithAVUs";
+		String expectedAttribName = "testattrib1";
+		String expectedAttribValue = "testvalue1";
+
+		IRODSAccessObjectFactory accessObjectFactory = irodsFileSystem
+				.getIRODSAccessObjectFactory();
+		CollectionAO collectionAO = accessObjectFactory
+				.getCollectionAO(irodsAccount);
+		IRODSFile targetCollectionAsFile = irodsFileSystem.getIRODSFileFactory(
+				irodsAccount).instanceIRODSFile(
+				targetIrodsCollection + "/" + testCollectionName);
+		targetCollectionAsFile.mkdirs();
+
+		AvuData dataToAdd = AvuData.instance(expectedAttribName,
+				expectedAttribValue, "");
+		collectionAO.addAVUMetadata(targetCollectionAsFile.getAbsolutePath(),
+				dataToAdd);
+
+		session.save();
+		session.refresh(true);
+
+		Node node = session
+				.getNode("/irodsGrid/"
+						+ testingProperties
+								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+						+ "/" + IRODS_TEST_SUBDIR_PATH + "/"
+						+ testCollectionName);
+
+		assertThat(node.getPrimaryNodeType().getName(), is("nt:folder"));
+
+		PropertyIterator iter = node.getProperties();
+
+		boolean foundAVU = false;
+		Property child = null;
+
+		while (iter.hasNext()) {
+			child = iter.nextProperty();
+			log.info("property node:{}", child);
+		}
 
 	}
 

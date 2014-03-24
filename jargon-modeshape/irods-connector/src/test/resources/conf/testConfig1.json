@@ -38,6 +38,6 @@
         "rebuildUponStartup" : "never"
          },
     
-    "node-types" : ["conf/any-properties.cnd"]
+    "node-types" : ["conf/irods.cnd"]
 
 }
