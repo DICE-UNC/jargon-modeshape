@@ -9,8 +9,7 @@
         "anonymous" : {
             "roles" : ["readonly","readwrite","admin"],
             "useOnFailedLogin" : true
-        },
-        
+        }
     },
     "storage" : {
         "cacheConfiguration" : "config/infinispan.xml",
@@ -30,9 +29,15 @@
             ],
             "readOnly" : false,
             "addMimeTypeMixin" : false,
+             "cacheTtlSeconds" : 30,
             "exclusionPattern" : ".+[.]tmp$"
         }
     } ,
-    "node-types" : ["conf/any-properties.cnd"]
-
-}
+       "query" : {
+        "enabled" : false,
+        "rebuildUponStartup" : "never"
+         },
+    
+    "node-types" : ["config/irods.cnd"]
+         
+} 
