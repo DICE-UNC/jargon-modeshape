@@ -1,9 +1,7 @@
 //------------------------------------------------------------------------------
 // N A M E S P A C E S
 //------------------------------------------------------------------------------
-<jcr='http://www.jcp.org/jcr/1.0'>
-<nt='http://www.jcp.org/jcr/nt/1.0'>
-<mix='http://www.jcp.org/jcr/mix/1.0'>
+
 <irods='http://www.irods.org/jcr/irods/1.0'>
 
 
@@ -12,4 +10,4 @@
 //------------------------------------------------------------------------------
 
 [irods:irodsobject]  mixin
--irods:avu (string) multiple 
+- irods:avu (String) multiple 

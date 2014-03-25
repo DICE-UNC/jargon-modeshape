@@ -71,6 +71,9 @@ import org.slf4j.LoggerFactory;
 public class IRODSWriteableConnector extends WritableConnector implements
 		ExtraPropertiesStore, Pageable {
 
+	public static final String JCR_IRODS_IRODSOBJECT = "irods:irodsobject";
+	public static final String JCR_IRODS_AVU_PROP = "irods:avu";
+
 	private ConnectorContext connectorContext;
 	public static final Logger log = LoggerFactory
 			.getLogger(IRODSWriteableConnector.class);
@@ -600,9 +603,19 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		boolean root = isRoot(id);
 		DocumentWriter writer = newDocument(id);
 		writer.setPrimaryType(NT_FOLDER);
+		writer.addMixinType(JCR_IRODS_IRODSOBJECT);
 		writer.addProperty(JCR_CREATED,
 				factories().getDateFactory().create(file.lastModified()));
 		writer.addProperty(JCR_CREATED_BY, null); // ignored
+
+		Map<Name, Property> propMap = this.getProperties(id);
+		Property irodsProp;
+		for (Name propName : propMap.keySet()) {
+			irodsProp = propMap.get(propName);
+			log.info("have prop:{}", irodsProp);
+			writer.addProperty(propName, irodsProp.getValues());
+		}
+
 		File[] children = file.listFiles(filenameFilter);
 		long totalChildren = 0;
 		int nextOffset = 0;
@@ -716,6 +729,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				throw new DocumentStoreException(id, msg);
 			}
 			String primaryType = reader.getPrimaryTypeName();
+
 			Map<Name, Property> properties = reader.getProperties();
 			ExtraProperties extraProperties = extraPropertiesFor(id, false);
 			extraProperties.addAll(properties).except(JCR_PRIMARY_TYPE,
@@ -1090,16 +1104,25 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		List<MetaDataAndDomainData> metadatas = collectionAO
 				.findMetadataValuesForCollection(path, 0);
 
-		List<Object> avuVals;
+		String[] avuVals;
 		for (MetaDataAndDomainData metadata : metadatas) {
-			avuVals = new ArrayList<Object>();
-			avuVals.add(metadata.getAvuAttribute());
-			avuVals.add(metadata.getAvuValue());
-			avuVals.add(metadata.getAvuUnit());
-			property = new BasicMultiValueProperty(new BasicName("irods",
-					metadata.getAvuAttribute()), avuVals);
-			props.put(property.getName(), property);
 
+			avuVals = new String[3];
+			avuVals[0] = this.getContext().getValueFactories()
+					.getStringFactory().create(metadata.getAvuAttribute());
+			avuVals[1] = this.getContext().getValueFactories()
+					.getStringFactory().create(metadata.getAvuValue());
+			avuVals[2] = this.getContext().getValueFactories()
+					.getStringFactory().create(metadata.getAvuUnit());
+			/*
+			 * avuVals.add(this.getContext().getValueFactories()
+			 * .getStringFactory().create(metadata.getAvuValue()));
+			 * avuVals.add(this.getContext().getValueFactories()
+			 * .getStringFactory().create(metadata.getAvuUnit()));
+			 */
+			property = new BasicMultiValueProperty(new BasicName(
+					"http://www.irods.org/jcr/irods/1.0", "avu"), avuVals);
+			props.put(property.getName(), property);
 		}
 
 		return props;
@@ -1132,8 +1155,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			avuVals.add(metadata.getAvuValue());
 			avuVals.add(metadata.getAvuUnit());
 
-			property = new BasicMultiValueProperty(new BasicName("irods",
-					metadata.getAvuAttribute()), avuVals);
+			property = new BasicMultiValueProperty(new BasicName(
+					"http://www.irods.org/jcr/irods/1.0", "avu"), avuVals);
 
 			props.put(property.getName(), property);
 
@@ -1238,8 +1261,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				if (property.isSingle()) {
 					log.info("single prop, name is attr, prop is value");
 
-					avuData = AvuData.instance(name.getString(),
-							(String) property.getFirstValue(), "");
+					avuData = AvuData.instance(
+							(String) property.getFirstValue(), "", "");
 					log.info("built avu:{}", avuData);
 					avuDatas.add(avuData);
 				} else {
@@ -1247,17 +1270,17 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 					values = property.getValuesAsArray();
 					if (values.length == 1) {
-						avuData = AvuData.instance(name.getString(),
-								(String) property.getFirstValue(), "");
+						avuData = AvuData.instance(
+								(String) property.getFirstValue(), "", "");
 						log.info("built avu from 1 value:{}", avuData);
 						avuDatas.add(avuData);
 					} else if (values.length == 2) {
-						avuData = AvuData.instance(name.getString(),
+						avuData = AvuData.instance((String) values[0],
 								(String) values[1], "");
 						log.info("built avu from 2 values:{}", avuData);
 
 					} else if (values.length == 3) {
-						avuData = AvuData.instance(name.getString(),
+						avuData = AvuData.instance((String) values[0],
 								(String) values[1], (String) values[2]);
 						log.info("built avu from 3 values:{}", avuData);
 					} else {
@@ -1322,6 +1345,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 	}
 
+	// @Override
 	@Override
 	public void updateProperties(final String arg0,
 			final Map<Name, Property> arg1) {
