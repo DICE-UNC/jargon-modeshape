@@ -15,7 +15,6 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
-import javax.jcr.nodetype.NodeDefinition;
 
 import junit.framework.Assert;
 
@@ -50,7 +49,6 @@ public class IRODSWriteableConnectorRepoTest {
 	private static ScratchFileUtils scratchFileUtils = null;
 	public static final String IRODS_TEST_SUBDIR_PATH = "IRODSWriteableConnectorRepoTest";
 	private static IRODSTestSetupUtilities irodsTestSetupUtilities = null;
-	private static AssertionHelper assertionHelper = null;
 	private static IRODSFileSystem irodsFileSystem;
 	private static org.modeshape.jcr.ModeShapeEngine engine;
 
@@ -70,7 +68,7 @@ public class IRODSWriteableConnectorRepoTest {
 		irodsTestSetupUtilities.initializeIrodsScratchDirectory();
 		irodsTestSetupUtilities
 				.initializeDirectoryForTest(IRODS_TEST_SUBDIR_PATH);
-		assertionHelper = new AssertionHelper();
+		new AssertionHelper();
 		irodsFileSystem = IRODSFileSystem.instance();
 
 		engine = new ModeShapeEngine();
@@ -326,8 +324,7 @@ public class IRODSWriteableConnectorRepoTest {
 								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
 						+ "/" + IRODS_TEST_SUBDIR_PATH);
 
-		// Create a new folder node ...
-		Node actual = parentNode.addNode(testFolder, "nt:folder");
+		parentNode.addNode(testFolder, "nt:folder");
 
 		// The auto-created properties are added when the session is saved ...
 		session.save();
@@ -424,7 +421,6 @@ public class IRODSWriteableConnectorRepoTest {
 
 		PropertyIterator iter = node.getProperties();
 
-		boolean foundAVU = false;
 		Property child = null;
 
 		while (iter.hasNext()) {
@@ -504,7 +500,7 @@ public class IRODSWriteableConnectorRepoTest {
 		}
 
 		Node jcrNode = session.getNode("/irodsGrid");
-		NodeDefinition def = jcrNode.getDefinition();
+		jcrNode.getDefinition();
 		Assert.assertNotNull("null node definition");
 		log.info("jcr node irodsGrid:{}", jcrNode);
 

@@ -8,10 +8,13 @@ import java.net.URL;
 
 import javax.jcr.RepositoryException;
 
+import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.core.pub.io.IRODSFileFactory;
 import org.modeshape.jcr.mimetype.MimeTypeDetector;
 import org.modeshape.jcr.value.binary.UrlBinaryValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * IRODS implemenetation of UrlBinaryValue
@@ -21,7 +24,16 @@ import org.modeshape.jcr.value.binary.UrlBinaryValue;
  */
 public class IRODSBinaryValue extends UrlBinaryValue {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 2488110109717325030L;
+
+	public static final Logger log = LoggerFactory
+			.getLogger(IRODSWriteableConnector.class);
+
 	private final ConnectorContext connectorContext;
+	private final IRODSAccount irodsAccount;
 
 	/**
 	 * @param sha1
@@ -31,11 +43,15 @@ public class IRODSBinaryValue extends UrlBinaryValue {
 	 * @param nameHint
 	 * @param mimeTypeDetector
 	 */
-	public IRODSBinaryValue(String sha1, String sourceName, URL content,
-			long size, String nameHint, MimeTypeDetector mimeTypeDetector,
-			ConnectorContext connectorContext) {
+	public IRODSBinaryValue(final String sha1, final String sourceName,
+			final URL content, final long size, final String nameHint,
+			final MimeTypeDetector mimeTypeDetector,
+			final ConnectorContext connectorContext,
+			final IRODSAccount irodsAccount) {
+
 		super(sha1, sourceName, content, size, nameHint, mimeTypeDetector);
 		this.connectorContext = connectorContext;
+		this.irodsAccount = irodsAccount;
 	}
 
 	/*
@@ -45,14 +61,23 @@ public class IRODSBinaryValue extends UrlBinaryValue {
 	 */
 	@Override
 	public InputStream getStream() throws RepositoryException {
+
+		log.info("getStream()");
+
 		try {
 
 			IRODSFileFactory irodsFileFactory = connectorContext
 					.getIrodsAccessObjectFactory().getIRODSFileFactory(
-							connectorContext.getProxyAccount());
+							irodsAccount);
+
+			log.info("getting input stream for id:{}", getId());
+
+			String formattedId = getId().replaceAll("file:", "");
+
+			log.info("formatted:{}", formattedId);
 
 			InputStream inputStream = irodsFileFactory
-					.instanceSessionClosingIRODSFileInputStream(this.getId());
+					.instanceSessionClosingIRODSFileInputStream(formattedId);
 			return inputStream;
 
 		} catch (JargonException e) {

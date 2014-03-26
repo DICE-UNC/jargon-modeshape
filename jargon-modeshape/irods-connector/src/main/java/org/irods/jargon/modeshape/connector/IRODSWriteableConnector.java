@@ -97,10 +97,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	private static final int JCR_CONTENT_SUFFIX_LENGTH = JCR_CONTENT_SUFFIX
 			.length();
 
-	private static final String EXTRA_PROPERTIES_JSON = "json";
-	private static final String EXTRA_PROPERTIES_LEGACY = "legacy";
-	private static final String EXTRA_PROPERTIES_NONE = "none";
-
 	/**
 	 * The string path for a {@link File} object that represents the top-level
 	 * directory accessed by this connector. This is set via reflection and is
@@ -149,28 +145,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * {@link #initialize(NamespaceRegistry, NodeTypeManager)} method.
 	 */
 	private InclusionExclusionFilenameFilter filenameFilter;
-
-	/**
-	 * A string that specifies how the "extra" properties are to be stored,
-	 * where an "extra" property is any JCR property that cannot be stored
-	 * natively on the file system as file attributes. This field is set via
-	 * reflection, and the value is expected to be one of these valid values:
-	 * <ul>
-	 * <li>"<code>store</code>" - Any extra properties are stored in the same
-	 * Infinispan cache where the content is stored. This is the default and is
-	 * used if the actual value doesn't match any of the other accepted values.</li>
-	 * <li>"<code>json</code>" - Any extra properties are stored in a JSON file
-	 * next to the file or directory.</li>
-	 * <li>"<code>legacy</code>" - Any extra properties are stored in a
-	 * ModeShape 2.x-compatible file next to the file or directory. This is
-	 * generally discouraged unless you were using ModeShape 2.x and have a
-	 * directory structure that already contains these files.</li>
-	 * <li>"<code>none</code>" - An extra properties that prevents the storage
-	 * of extra properties by throwing an exception when such extra properties
-	 * are defined.</li>
-	 * </ul>
-	 */
-	private String extraPropertiesStorage;
 
 	/**
 	 * A boolean which determines whether for external binary values (i.e.
@@ -361,6 +335,9 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		String id = path.substring(directoryAbsolutePathLength);
 		id = id.replaceAll(Pattern.quote(FILE_SEPARATOR), DELIMITER);
 		assert id.startsWith(DELIMITER);
+
+		log.info("idFor is:{}", id);
+
 		return id;
 	}
 
@@ -373,6 +350,11 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * @return the BinaryValue; never null
 	 */
 	protected ExternalBinaryValue binaryFor(final File file) {
+
+		log.info("binaryFor()");
+		assert file != null;
+		log.info("file:{}", file);
+
 		try {
 			return createBinaryValue(file);
 		} catch (RuntimeException e) {
@@ -396,10 +378,15 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 */
 	protected ExternalBinaryValue createBinaryValue(final File file)
 			throws IOException {
+
+		log.info("createBinaryFile()");
+		assert file != null;
+		log.info("file:{}", file);
+
 		URL content = createUrlForFile(file);
 		return new IRODSBinaryValue(sha1(file), getSourceName(), content,
 				file.length(), file.getName(), getMimeTypeDetector(),
-				connectorContext);
+				connectorContext, this.getIrodsAccount());
 	}
 
 	/**
@@ -457,6 +444,14 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 	protected File createFileForUrl(final URL url) throws URISyntaxException {
 
+		log.info("createFileForUrl()");
+
+		if (url == null) {
+			throw new IllegalArgumentException("Null url");
+		}
+
+		log.info("url:{}", url);
+
 		try {
 
 			IRODSFileFactory irodsFileFactory = connectorContext
@@ -464,6 +459,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 							getIrodsAccount());
 
 			String stringFormOfUrl = url.getPath();
+
+			log.info("string form:{}", stringFormOfUrl);
 
 			IRODSFile irodsFile = irodsFileFactory
 					.instanceIRODSFile(stringFormOfUrl);
@@ -521,19 +518,35 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	@Override
 	public Document getDocumentById(final String id) {
 
+		log.info("getDocumentById()");
+
+		if (id == null || id.isEmpty()) {
+			throw new IllegalArgumentException("null or empty id");
+		}
+
+		log.info("id:{}", id);
+
+		/*
+		 * This patches an apparent bug in the webdav servlet that tends to
+		 * double-include // chars in folder links
+		 */
+
+		String correctedId = id.replaceAll("//", "/");
+		log.info("correctedId:{}", correctedId);
+
 		try {
 
-			File file = fileFor(id, false);
+			File file = fileFor(correctedId, false);
 			if (isExcluded(file) || !file.exists()) {
 				return null;
 			}
-			boolean isRoot = isRoot(id);
-			boolean isResource = isContentNode(id);
+			boolean isRoot = isRoot(correctedId);
+			boolean isResource = isContentNode(correctedId);
 			DocumentWriter writer = null;
 			File parentFile = file.getParentFile();
 			if (isResource) {
-
-				writer = newDocument(id);
+				log.info("treat as resource...");
+				writer = newDocument(correctedId);
 				BinaryValue binaryValue = binaryFor(file);
 				writer.setPrimaryType(NT_RESOURCE);
 				writer.addProperty(JCR_DATA, binaryValue);
@@ -544,7 +557,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 						mimeType = binaryValue.getMimeType();
 					} catch (Throwable e) {
 						getLogger().error(e, JcrI18n.couldNotGetMimeType,
-								getSourceName(), id, e.getMessage());
+								getSourceName(), correctedId, e.getMessage());
 					}
 					writer.addProperty(JCR_ENCODING, encoding);
 					writer.addProperty(JCR_MIME_TYPE, mimeType);
@@ -559,16 +572,18 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				writer.setNotQueryable();
 				parentFile = file;
 			} else if (file.isFile()) {
-				writer = newDocument(id);
+				log.info("treat as file");
+				writer = newDocument(correctedId);
 				writer.setPrimaryType(NT_FILE);
 				writer.addProperty(JCR_CREATED, factories().getDateFactory()
 						.create(file.lastModified()));
 				writer.addProperty(JCR_CREATED_BY, null); // ignored
-				String childId = isRoot ? JCR_CONTENT_SUFFIX : id
+				String childId = isRoot ? JCR_CONTENT_SUFFIX : correctedId
 						+ JCR_CONTENT_SUFFIX;
 				writer.addChild(childId, JCR_CONTENT);
 			} else {
-				writer = newFolderWriter(id, file, 0);
+				log.info("treat as folder..");
+				writer = newFolderWriter(correctedId, file, 0);
 			}
 
 			if (!isRoot) {
@@ -580,7 +595,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			// Add the extra properties (if there are any), overwriting any
 			// properties with the same names
 			// (e.g., jcr:primaryType, jcr:mixinTypes, jcr:mimeType, etc.) ...
-			writer.addProperties(getProperties(id));
+			writer.addProperties(getProperties(correctedId));
 
 			// Add the 'mix:mixinType' mixin; if other mixins are stored in the
 			// extra properties, this will append ...
@@ -600,6 +615,16 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 	private DocumentWriter newFolderWriter(final String id, final File file,
 			final int offset) {
+
+		log.info("newFolderWriter()");
+
+		assert id != null;
+		assert !id.isEmpty();
+		assert file != null;
+
+		log.info("id:{}", id);
+		log.info("file:{}", file.getAbsolutePath());
+
 		boolean root = isRoot(id);
 		DocumentWriter writer = newDocument(id);
 		writer.setPrimaryType(NT_FOLDER);
@@ -676,6 +701,14 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 	@Override
 	public ExternalBinaryValue getBinaryValue(final String id) {
+
+		log.info("getBinaryValue()");
+		if (id == null || id.isEmpty()) {
+			throw new IllegalArgumentException("null or empty id");
+		}
+
+		log.info("id:{}", id);
+
 		try {
 			File f = createFileForUrl(new URL(id));
 			return binaryFor(f);
