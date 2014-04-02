@@ -48,7 +48,6 @@ import org.modeshape.jcr.federation.spi.ConnectorException;
 import org.modeshape.jcr.federation.spi.DocumentChanges;
 import org.modeshape.jcr.federation.spi.DocumentReader;
 import org.modeshape.jcr.federation.spi.DocumentWriter;
-import org.modeshape.jcr.federation.spi.ExtraPropertiesStore;
 import org.modeshape.jcr.federation.spi.PageKey;
 import org.modeshape.jcr.federation.spi.Pageable;
 import org.modeshape.jcr.federation.spi.WritableConnector;
@@ -69,7 +68,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 public class IRODSWriteableConnector extends WritableConnector implements
-		ExtraPropertiesStore, Pageable {
+		Pageable {
 
 	public static final String JCR_IRODS_IRODSOBJECT = "irods:irodsobject";
 	public static final String JCR_IRODS_AVU_PROP = "irods:avu";
@@ -571,6 +570,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				// we need to switch to external binaries
 				writer.setNotQueryable();
 				parentFile = file;
+
 			} else if (file.isFile()) {
 				log.info("treat as file");
 				writer = newDocument(correctedId);
@@ -581,6 +581,15 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				String childId = isRoot ? JCR_CONTENT_SUFFIX : correctedId
 						+ JCR_CONTENT_SUFFIX;
 				writer.addChild(childId, JCR_CONTENT);
+
+				log.info("get avus and add as props to the file");
+				// Add the extra properties (if there are any), overwriting any
+				// properties with the same names
+				// (e.g., jcr:primaryType, jcr:mixinTypes, jcr:mimeType, etc.)
+				// ...
+				writer.addProperties(getPropertiesForDataObject(
+						file.getParent(), file.getName()));
+
 			} else {
 				log.info("treat as folder..");
 				writer = newFolderWriter(correctedId, file, 0);
@@ -591,11 +600,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				String parentId = idFor(parentFile);
 				writer.setParents(parentId);
 			}
-
-			// Add the extra properties (if there are any), overwriting any
-			// properties with the same names
-			// (e.g., jcr:primaryType, jcr:mixinTypes, jcr:mimeType, etc.) ...
-			writer.addProperties(getProperties(correctedId));
 
 			// Add the 'mix:mixinType' mixin; if other mixins are stored in the
 			// extra properties, this will append ...
@@ -633,13 +637,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				factories().getDateFactory().create(file.lastModified()));
 		writer.addProperty(JCR_CREATED_BY, null); // ignored
 
-		Map<Name, Property> propMap = this.getProperties(id);
-		Property irodsProp;
-		for (Name propName : propMap.keySet()) {
-			irodsProp = propMap.get(propName);
-			log.info("have prop:{}", irodsProp);
-			writer.addProperty(propName, irodsProp.getValues());
-		}
+		Map<Name, Property> propMap = this.getPropertiesForCollection(id);
+		writer.addProperties(propMap);
 
 		File[] children = file.listFiles(filenameFilter);
 		long totalChildren = 0;
@@ -676,6 +675,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		if (nextOffset < totalChildren) {
 			writer.addPage(id, nextOffset, pageSize, totalChildren);
 		}
+
 		return writer;
 	}
 
@@ -1052,20 +1052,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.modeshape.jcr.federation.spi.ExtraPropertiesStore#getProperties(java
-	 * .lang.String)
-	 */
-	@Override
 	public Map<Name, Property> getProperties(String id) {
-
-		/*
-		 * /fedZone1/home/test1/jargon-scratch/IRODSWriteableConnectorRepoTest/
-		 * testFileURIBased.txt/jcr:content
-		 */
 
 		if (id.endsWith(DELIMITER)) {
 			id = id.substring(0, id.length() - DELIMITER.length());
@@ -1109,14 +1096,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		} catch (JargonException e) {
 			throw new DocumentStoreException(id, "error getting properties");
 
-		} catch (JargonQueryException e) {
-			throw new DocumentStoreException(id, "error getting properties");
-
-		} finally {
-			getConnectorContext().getIrodsAccessObjectFactory()
-					.closeSessionAndEatExceptions();
 		}
-
 	}
 
 	/**
@@ -1125,17 +1105,64 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * @throws JargonException
 	 * @throws JargonQueryException
 	 */
-	private Map<Name, Property> getPropertiesForCollection(final String path)
-			throws JargonException, JargonQueryException {
+	private Map<Name, Property> getPropertiesForCollection(final String path) {
+
+		assert path != null && !path.isEmpty();
+		String id = path;
+
+		if (path.endsWith(DELIMITER)) {
+			id = id.substring(0, id.length() - DELIMITER.length());
+		}
+		if (isContentNode(id)) {
+			id = id.substring(0, id.length() - JCR_CONTENT_SUFFIX_LENGTH);
+		}
+
+		if (id.isEmpty()) {
+			id = "/";
+		}
+
 		Map<Name, Property> props = new HashMap<Name, Property>();
 		Property property;
 
-		CollectionAO collectionAO = connectorContext
-				.getIrodsAccessObjectFactory().getCollectionAO(
-						getIrodsAccount());
+		List<MetaDataAndDomainData> metadatas;
+		try {
 
-		List<MetaDataAndDomainData> metadatas = collectionAO
-				.findMetadataValuesForCollection(path, 0);
+			File fileForProps;
+			if (this.isRoot(id)) {
+				fileForProps = (File) this.connectorContext
+						.getIrodsAccessObjectFactory()
+						.getIRODSFileFactory(this.getIrodsAccount())
+						.instanceIRODSFile(this.directoryAbsolutePath);
+			} else {
+				fileForProps = (File) this.connectorContext
+						.getIrodsAccessObjectFactory()
+						.getIRODSFileFactory(this.getIrodsAccount())
+						.instanceIRODSFile(this.directoryAbsolutePath, id);
+			}
+
+			log.info("file abs path to search for collection AVUs:{}",
+					fileForProps.getAbsolutePath());
+
+			CollectionAO collectionAO = connectorContext
+					.getIrodsAccessObjectFactory().getCollectionAO(
+							getIrodsAccount());
+
+			metadatas = collectionAO.findMetadataValuesForCollection(
+					fileForProps.getAbsolutePath(), 0);
+
+		} catch (FileNotFoundException e) {
+			log.error("fnf retrieving avus", e);
+			throw new DocumentStoreException(
+					"file not found for retrieving avus", e);
+		} catch (JargonException e) {
+			log.error("jargon exception retrieving avus", e);
+			throw new DocumentStoreException(
+					"jargon exception retrieving avus", e);
+		} catch (JargonQueryException e) {
+			log.error("jargon query exception retrieving avus", e);
+			throw new DocumentStoreException(
+					"jargon query exception retrieving avus", e);
+		}
 
 		String[] avuVals;
 		for (MetaDataAndDomainData metadata : metadatas) {
@@ -1170,16 +1197,56 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * @throws JargonQueryException
 	 */
 	private Map<Name, Property> getPropertiesForDataObject(final String path,
-			final String name) throws JargonException, JargonQueryException {
+			final String name) {
+
+		assert path != null && !path.isEmpty();
+		assert name != null && !name.isEmpty();
+
+		String id = path;
+
+		if (path.endsWith(DELIMITER)) {
+			id = id.substring(0, id.length() - DELIMITER.length());
+		}
+		if (isContentNode(id)) {
+			id = id.substring(0, id.length() - JCR_CONTENT_SUFFIX_LENGTH);
+		}
+
+		log.info("path used to get data object avus:{}", id);
+		File fileForProps;
+		try {
+			fileForProps = (File) this.connectorContext
+					.getIrodsAccessObjectFactory()
+					.getIRODSFileFactory(this.getIrodsAccount())
+					.instanceIRODSFile(this.directoryAbsolutePath, id);
+		} catch (JargonException e) {
+			log.error("jargon exception retrieving file for path", e);
+			throw new DocumentStoreException(
+					"jargon exception retrieving file for path", e);
+		}
+
 		Map<Name, Property> props = new HashMap<Name, Property>();
 		Property property;
+		List<MetaDataAndDomainData> metadatas;
+		try {
+			DataObjectAO dataObjectAO = connectorContext
+					.getIrodsAccessObjectFactory().getDataObjectAO(
+							getIrodsAccount());
 
-		DataObjectAO dataObjectAO = connectorContext
-				.getIrodsAccessObjectFactory().getDataObjectAO(
-						getIrodsAccount());
-
-		List<MetaDataAndDomainData> metadatas = dataObjectAO
-				.findMetadataValuesForDataObject(path, name);
+			metadatas = dataObjectAO.findMetadataValuesForDataObject(
+					fileForProps.getParent(), fileForProps.getName());
+		} catch (FileNotFoundException e) {
+			log.error("fnf retrieving avus", e);
+			throw new DocumentStoreException(
+					"file not found for retrieving avus", e);
+		} catch (JargonException e) {
+			log.error("jargon exception retrieving avus", e);
+			throw new DocumentStoreException(
+					"jargon exception retrieving avus", e);
+		} catch (JargonQueryException e) {
+			log.error("jargon query exception retrieving avus", e);
+			throw new DocumentStoreException(
+					"jargon query exception retrieving avus", e);
+		}
 
 		List<Object> avuVals;
 		for (MetaDataAndDomainData metadata : metadatas) {
@@ -1205,7 +1272,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * org.modeshape.jcr.federation.spi.ExtraPropertiesStore#removeProperties
 	 * (java.lang.String)
 	 */
-	@Override
 	public boolean removeProperties(final String absolutePath) {
 		CollectionAndDataObjectListAndSearchAO collectionAndDataObjectListAndSearchAO;
 		try {
@@ -1255,7 +1321,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		return true;
 	}
 
-	@Override
 	public void storeProperties(final String absolutePath,
 			final Map<Name, Property> properties) {
 
@@ -1379,7 +1444,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	}
 
 	// @Override
-	@Override
 	public void updateProperties(final String arg0,
 			final Map<Name, Property> arg1) {
 		log.warn("updateProperties Not yet implemented!");

@@ -392,6 +392,7 @@ public class IRODSWriteableConnectorRepoTest {
 		String testCollectionName = "testFolderWithAVUs";
 		String expectedAttribName = "testattrib1";
 		String expectedAttribValue = "testvalue1";
+		String expectedAttribUnit = "testunit1";
 
 		IRODSAccessObjectFactory accessObjectFactory = irodsFileSystem
 				.getIRODSAccessObjectFactory();
@@ -403,7 +404,7 @@ public class IRODSWriteableConnectorRepoTest {
 		targetCollectionAsFile.mkdirs();
 
 		AvuData dataToAdd = AvuData.instance(expectedAttribName,
-				expectedAttribValue, "");
+				expectedAttribValue, expectedAttribUnit);
 		collectionAO.addAVUMetadata(targetCollectionAsFile.getAbsolutePath(),
 				dataToAdd);
 
@@ -422,11 +423,31 @@ public class IRODSWriteableConnectorRepoTest {
 		PropertyIterator iter = node.getProperties();
 
 		Property child = null;
+		Property avu = null;
 
+		boolean foundAVU = false;
 		while (iter.hasNext()) {
 			child = iter.nextProperty();
+			if (child.getName().equals("irods:avu")) {
+				foundAVU = true;
+				avu = child;
+			}
 			log.info("property node:{}", child);
 		}
+
+		Assert.assertTrue("did not find AVU in properties", foundAVU);
+		String avuAttrib = avu.getValues()[0].getString();
+		log.info("avuAttrib:{}", avuAttrib);
+		Assert.assertEquals("did not properly get string value of attr",
+				expectedAttribName, avuAttrib);
+		String avuValue = avu.getValues()[1].getString();
+		log.info("avuValue:{}", avuValue);
+		Assert.assertEquals("did not properly get string value",
+				expectedAttribValue, avuValue);
+		String avuUnit = avu.getValues()[2].getString();
+		log.info("avuUnit:{}", avuUnit);
+		Assert.assertEquals("did not properly get string unit",
+				expectedAttribUnit, avuUnit);
 
 	}
 
