@@ -575,6 +575,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				log.info("treat as file");
 				writer = newDocument(correctedId);
 				writer.setPrimaryType(NT_FILE);
+				writer.addMixinType(JCR_IRODS_IRODSOBJECT);
+
 				writer.addProperty(JCR_CREATED, factories().getDateFactory()
 						.create(file.lastModified()));
 				writer.addProperty(JCR_CREATED_BY, null); // ignored
@@ -1052,53 +1054,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 	}
 
-	public Map<Name, Property> getProperties(String id) {
-
-		if (id.endsWith(DELIMITER)) {
-			id = id.substring(0, id.length() - DELIMITER.length());
-		}
-		if (isContentNode(id)) {
-			id = id.substring(0, id.length() - JCR_CONTENT_SUFFIX_LENGTH);
-		}
-
-		try {
-			File fileForProps;
-			if (this.isRoot(id)) {
-				fileForProps = (File) this.connectorContext
-						.getIrodsAccessObjectFactory()
-						.getIRODSFileFactory(this.getIrodsAccount())
-						.instanceIRODSFile(this.directoryAbsolutePath);
-			} else {
-				fileForProps = (File) this.connectorContext
-						.getIrodsAccessObjectFactory()
-						.getIRODSFileFactory(this.getIrodsAccount())
-						.instanceIRODSFile(this.directoryAbsolutePath, id);
-			}
-
-			CollectionAndDataObjectListAndSearchAO collectionAndDataObjectListAndSearchAO = connectorContext
-					.getIrodsAccessObjectFactory()
-					.getCollectionAndDataObjectListAndSearchAO(
-							getIrodsAccount());
-
-			log.info("getting properties for:{}", fileForProps);
-
-			ObjStat objStat = collectionAndDataObjectListAndSearchAO
-					.retrieveObjectStatForPath(fileForProps.getAbsolutePath());
-
-			if (objStat.isSomeTypeOfCollection()) {
-				return getPropertiesForCollection(fileForProps
-						.getAbsolutePath());
-			} else {
-
-				return getPropertiesForDataObject(fileForProps.getParent(),
-						fileForProps.getName());
-			}
-		} catch (JargonException e) {
-			throw new DocumentStoreException(id, "error getting properties");
-
-		}
-	}
-
 	/**
 	 * @param path
 	 * @return
@@ -1202,22 +1157,12 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		assert path != null && !path.isEmpty();
 		assert name != null && !name.isEmpty();
 
-		String id = path;
-
-		if (path.endsWith(DELIMITER)) {
-			id = id.substring(0, id.length() - DELIMITER.length());
-		}
-		if (isContentNode(id)) {
-			id = id.substring(0, id.length() - JCR_CONTENT_SUFFIX_LENGTH);
-		}
-
-		log.info("path used to get data object avus:{}", id);
 		File fileForProps;
 		try {
 			fileForProps = (File) this.connectorContext
 					.getIrodsAccessObjectFactory()
 					.getIRODSFileFactory(this.getIrodsAccount())
-					.instanceIRODSFile(this.directoryAbsolutePath, id);
+					.instanceIRODSFile(path, name);
 		} catch (JargonException e) {
 			log.error("jargon exception retrieving file for path", e);
 			throw new DocumentStoreException(

@@ -21,11 +21,13 @@ import junit.framework.Assert;
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.pub.CollectionAO;
 import org.irods.jargon.core.pub.DataObjectAO;
+import org.irods.jargon.core.pub.DataObjectAOImpl;
 import org.irods.jargon.core.pub.DataTransferOperations;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.pub.IRODSFileSystem;
 import org.irods.jargon.core.pub.domain.AvuData;
 import org.irods.jargon.core.pub.io.IRODSFile;
+import org.irods.jargon.core.pub.io.IRODSFileFactory;
 import org.irods.jargon.testutils.AssertionHelper;
 import org.irods.jargon.testutils.IRODSTestSetupUtilities;
 import org.irods.jargon.testutils.TestingPropertiesHelper;
@@ -542,4 +544,79 @@ public class IRODSWriteableConnectorRepoTest {
 		// projection.create(testRoot, "readonly");
 
 	}
+
+	@Test
+	public void testDataObjectWithTwoAVUs() throws Exception {
+
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
+
+		String targetIrodsCollection = testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH);
+
+		String testFileName = "testDataObjectWithTwoAVUs.bs";
+		String absPath = scratchFileUtils
+				.createAndReturnAbsoluteScratchPath(IRODS_TEST_SUBDIR_PATH);
+		String localFileName = FileGenerator
+				.generateFileOfFixedLengthGivenName(absPath, testFileName, 2);
+		File localFile = new File(localFileName);
+		String expectedAttribName = "testattrib1";
+		String expectedAttribValue = "testvalue1";
+		String expectedAttribUnit = "testunit1";
+
+		String expectedAttribName2 = "testattrib2";
+		String expectedAttribValue2 = "testvalue2";
+		String expectedAttribUnit2 = "testunit2";
+
+		IRODSAccessObjectFactory accessObjectFactory = irodsFileSystem
+				.getIRODSAccessObjectFactory();
+		IRODSFileFactory irodsFileFactory = accessObjectFactory
+				.getIRODSFileFactory(irodsAccount);
+		DataObjectAOImpl dataObjectAO = (DataObjectAOImpl) accessObjectFactory
+				.getDataObjectAO(irodsAccount);
+		DataTransferOperations dataTransferOperations = accessObjectFactory
+				.getDataTransferOperations(irodsAccount);
+		IRODSFile destFile = irodsFileFactory.instanceIRODSFile(
+				targetIrodsCollection, testFileName);
+		dataTransferOperations.putOperation(localFile, destFile, null, null);
+
+		AvuData dataToAdd = AvuData.instance(expectedAttribName,
+				expectedAttribValue, expectedAttribUnit);
+		dataObjectAO.addAVUMetadata(destFile.getAbsolutePath(), dataToAdd);
+
+		dataToAdd = AvuData.instance(expectedAttribName2, expectedAttribValue2,
+				expectedAttribUnit2);
+		dataObjectAO.addAVUMetadata(destFile.getAbsolutePath(), dataToAdd);
+
+		session.save();
+		session.refresh(true);
+
+		Node node = session
+				.getNode("/irodsGrid/"
+						+ testingProperties
+								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+						+ "/" + IRODS_TEST_SUBDIR_PATH + "/" + testFileName);
+
+		assertThat(node.getPrimaryNodeType().getName(), is("nt:file"));
+
+		PropertyIterator iter = node.getProperties();
+
+		Property child = null;
+		Property avu = null;
+
+		int foundAVU = 0;
+		while (iter.hasNext()) {
+			child = iter.nextProperty();
+			if (child.getName().equals("irods:avu")) {
+				foundAVU++;
+				avu = child;
+			}
+			log.info("property node:{}", child);
+		}
+
+		Assert.assertEquals("did not find two AVUs in properties", 2, foundAVU);
+
+	}
+
 }
