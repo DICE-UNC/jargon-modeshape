@@ -1,0 +1,184 @@
+private boolean removePropertiesForCollection(final String absolutePath)
+			throws JargonException {
+		log.info("removePropertiesForCollection()");
+		CollectionAO collectionAO = this.getConnectorContext()
+				.getIrodsAccessObjectFactory()
+				.getCollectionAO(getIrodsAccount());
+		collectionAO.deleteAllAVUMetadata(absolutePath);
+		log.info("deleted");
+		return true;
+	}
+
+	public void storeProperties(final String absolutePath,
+			final Map<Name, Property> properties) {
+
+		// FIXME: I don't know if this is how JCR props map to AVUs will need to
+		// actually test and see
+
+		log.info("storeProperties()");
+
+		if (absolutePath == null || absolutePath.isEmpty()) {
+			throw new IllegalArgumentException("null or empty absolutePath");
+		}
+
+		if (properties == null) {
+			throw new IllegalArgumentException("null properties");
+		}
+
+		if (properties.isEmpty()) {
+			log.info("no props, just exit");
+			return;
+		}
+
+		log.info("marshalling props into AVU metadata");
+
+		List<AvuData> avuDatas = new ArrayList<AvuData>();
+		AvuData avuData;
+		Property property;
+		Object[] values;
+		try {
+			for (Name name : properties.keySet()) {
+
+				log.info("processing name:{}", name);
+				property = properties.get(name);
+				assert property != null;
+				log.info("have property:{}", property);
+
+				if (property.isSingle()) {
+					log.info("single prop, name is attr, prop is value");
+
+					avuData = AvuData.instance(
+							(String) property.getFirstValue(), "", "");
+					log.info("built avu:{}", avuData);
+					avuDatas.add(avuData);
+				} else {
+					log.info("multiple prop, name is atter, prop 1 is attr, prop 2 val, and prop 3 if present is unit");
+
+					values = property.getValuesAsArray();
+					if (values.length == 1) {
+						avuData = AvuData.instance(
+								(String) property.getFirstValue(), "", "");
+						log.info("built avu from 1 value:{}", avuData);
+						avuDatas.add(avuData);
+					} else if (values.length == 2) {
+						avuData = AvuData.instance((String) values[0],
+								(String) values[1], "");
+						log.info("built avu from 2 values:{}", avuData);
+
+					} else if (values.length == 3) {
+						avuData = AvuData.instance((String) values[0],
+								(String) values[1], (String) values[2]);
+						log.info("built avu from 3 values:{}", avuData);
+					} else {
+						throw new DocumentStoreException(absolutePath,
+								"properties for metadata has more than 3 values, unable to handle this");
+					}
+					avuDatas.add(avuData);
+
+				}
+			}
+
+			log.info("check object type to store avus...");
+
+			CollectionAndDataObjectListAndSearchAO collectionAndDataObjectListAndSearchAO = connectorContext
+					.getIrodsAccessObjectFactory()
+					.getCollectionAndDataObjectListAndSearchAO(
+							getIrodsAccount());
+			ObjStat objStat = collectionAndDataObjectListAndSearchAO
+					.retrieveObjectStatForPath(absolutePath);
+
+			if (objStat.isSomeTypeOfCollection()) {
+				storePropertiesForCollection(absolutePath, avuDatas);
+			} else {
+
+				storePropertiesForDataObject(absolutePath, avuDatas);
+			}
+
+			log.info("done");
+
+		} catch (JargonException e) {
+			throw new DocumentStoreException(absolutePath,
+					"error storing properties");
+
+		} finally {
+			getConnectorContext().getIrodsAccessObjectFactory()
+					.closeSessionAndEatExceptions();
+		}
+
+	}
+
+	private void storePropertiesForDataObject(String absolutePath,
+			List<AvuData> avuDatas) throws FileNotFoundException,
+			JargonException {
+		log.info("storePropertiesForDataObject()");
+
+		DataObjectAO dataObjectAO = this.connectorContext
+				.getIrodsAccessObjectFactory().getDataObjectAO(
+						getIrodsAccount());
+		dataObjectAO.addBulkAVUMetadataToDataObject(absolutePath, avuDatas);
+
+	}
+
+	private void storePropertiesForCollection(String absolutePath,
+			List<AvuData> avuDatas) throws JargonException {
+
+		log.info("storePropertiesForCollection()");
+
+		CollectionAO collectionAO = this.connectorContext
+				.getIrodsAccessObjectFactory().getCollectionAO(
+						getIrodsAccount());
+		collectionAO.addBulkAVUMetadataToCollection(absolutePath, avuDatas);
+
+	}
+
+	// @Override
+	public void updateProperties(final String arg0,
+			final Map<Name, Property> arg1) {
+		log.warn("updateProperties Not yet implemented!");
+
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.federation.spi.ExtraPropertiesStore#removeProperties
+	 * (java.lang.String)
+	 */
+	public boolean removeProperties(final String absolutePath) {
+		CollectionAndDataObjectListAndSearchAO collectionAndDataObjectListAndSearchAO;
+		try {
+			collectionAndDataObjectListAndSearchAO = connectorContext
+					.getIrodsAccessObjectFactory()
+					.getCollectionAndDataObjectListAndSearchAO(
+							getIrodsAccount());
+			ObjStat objStat = collectionAndDataObjectListAndSearchAO
+					.retrieveObjectStatForPath(absolutePath);
+
+			if (objStat.isSomeTypeOfCollection()) {
+				return removePropertiesForCollection(absolutePath);
+			} else {
+
+				return removePropertiesForDataObject(absolutePath);
+			}
+
+		} catch (JargonException e) {
+			throw new DocumentStoreException(absolutePath,
+					"error removing properties");
+		} finally {
+			getConnectorContext().getIrodsAccessObjectFactory()
+					.closeSessionAndEatExceptions();
+		}
+
+	}
+
+	private boolean removePropertiesForDataObject(final String absolutePath)
+			throws JargonException {
+		log.info("removePropertiesForDataObject()");
+		DataObjectAO dataObjectAO = this.getConnectorContext()
+				.getIrodsAccessObjectFactory()
+				.getDataObjectAO(getIrodsAccount());
+		dataObjectAO.deleteAllAVUForDataObject(absolutePath);
+		log.info("deleted");
+		return true;
+	}

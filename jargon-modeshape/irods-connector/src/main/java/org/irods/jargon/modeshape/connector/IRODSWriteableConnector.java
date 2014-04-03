@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,7 +29,6 @@ import org.irods.jargon.core.exception.NoResourceDefinedException;
 import org.irods.jargon.core.pub.CollectionAO;
 import org.irods.jargon.core.pub.CollectionAndDataObjectListAndSearchAO;
 import org.irods.jargon.core.pub.DataObjectAO;
-import org.irods.jargon.core.pub.domain.AvuData;
 import org.irods.jargon.core.pub.domain.ObjStat;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.core.pub.io.IRODSFileFactory;
@@ -54,7 +52,6 @@ import org.modeshape.jcr.federation.spi.WritableConnector;
 import org.modeshape.jcr.value.BinaryValue;
 import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.Property;
-import org.modeshape.jcr.value.basic.BasicMultiValueProperty;
 import org.modeshape.jcr.value.basic.BasicName;
 import org.modeshape.jcr.value.basic.BasicSingleValueProperty;
 import org.modeshape.jcr.value.binary.ExternalBinaryValue;
@@ -553,6 +550,10 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			boolean isAvu = isAvuNode(correctedId);
 			DocumentWriter writer = null;
 
+			/*
+			 * Note that I won't be asking for an avu unless the parent file or
+			 * folder was 'included'
+			 */
 			if (isAvu) {
 				log.info("return a doc for an avu");
 				return getDocumentForAvu(id);
@@ -606,14 +607,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				writer.addChild(childId, JCR_CONTENT);
 
 				log.info("get avus and add as props to the file");
-				// Add the extra properties (if there are any), overwriting any
-				// properties with the same names
-				// (e.g., jcr:primaryType, jcr:mixinTypes, jcr:mimeType, etc.)
-				// ...
-				/*
-				 * writer.addProperties(getPropertiesForDataObject(
-				 * file.getParent(), file.getName()));
-				 */
+				addAvuChildrenForDataObject(file.getAbsolutePath(), writer);
 
 			} else {
 				log.info("treat as folder..");
@@ -681,12 +675,30 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		 */
 
 		try {
-			CollectionAO collectionAO = this.getConnectorContext()
+			List<MetaDataAndDomainData> metadatas;
+			log.info("getting objstat for this path");
+			CollectionAndDataObjectListAndSearchAO collectionAndDataObjectListAndSearchAO = this
+					.getConnectorContext()
 					.getIrodsAccessObjectFactory()
-					.getCollectionAO(getIrodsAccount());
+					.getCollectionAndDataObjectListAndSearchAO(
+							getIrodsAccount());
+			ObjStat objStat = collectionAndDataObjectListAndSearchAO
+					.retrieveObjectStatForPath(filePath);
 
-			List<MetaDataAndDomainData> metadatas = collectionAO
-					.findMetadataValuesForCollection(filePath);
+			if (objStat.isSomeTypeOfCollection()) {
+				CollectionAO collectionAO = this.getConnectorContext()
+						.getIrodsAccessObjectFactory()
+						.getCollectionAO(getIrodsAccount());
+
+				metadatas = collectionAO
+						.findMetadataValuesForCollection(filePath);
+			} else {
+				DataObjectAO dataObjectAO = this.getConnectorContext()
+						.getIrodsAccessObjectFactory()
+						.getDataObjectAO(getIrodsAccount());
+				metadatas = dataObjectAO
+						.findMetadataValuesForDataObject(filePath);
+			}
 
 			if (metadatas.isEmpty()) {
 				log.error("no metadata found");
@@ -709,27 +721,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 						"no metadata found in returned avus to match attrib and value");
 			}
 
-			Map<Name, Property> properties = new HashMap<Name, Property>();
-
-			writer.setPrimaryType(JCR_IRODS_AVU);
-
-			Property property = new BasicSingleValueProperty(new BasicName(
-					"http://www.irods.org/jcr/irods/1.0", AVU_ATTRIBUTE_PROP),
-					foundData.getAvuAttribute());
-
-			properties.put(property.getName(), property);
-
-			property = new BasicSingleValueProperty(new BasicName(
-					"http://www.irods.org/jcr/irods/1.0", AVU_VALUE_PROP),
-					foundData.getAvuValue());
-			properties.put(property.getName(), property);
-
-			property = new BasicSingleValueProperty(new BasicName(
-					"http://www.irods.org/jcr/irods/1.0", AVU_UNIT_PROP),
-					foundData.getAvuUnit());
-			properties.put(property.getName(), property);
-
-			writer.addProperties(properties);
+			addAvuMetadataAsProperty(writer, foundData);
 
 			log.info("added AVU as properties!");
 			Document doc = writer.document();
@@ -744,6 +736,31 @@ public class IRODSWriteableConnector extends WritableConnector implements
 					"query error getting AVU metadata", e);
 		}
 
+	}
+
+	private void addAvuMetadataAsProperty(DocumentWriter writer,
+			MetaDataAndDomainData metadataValue) {
+		Map<Name, Property> properties = new HashMap<Name, Property>();
+
+		writer.setPrimaryType(JCR_IRODS_AVU);
+
+		Property property = new BasicSingleValueProperty(new BasicName(
+				"http://www.irods.org/jcr/irods/1.0", AVU_ATTRIBUTE_PROP),
+				metadataValue.getAvuAttribute());
+
+		properties.put(property.getName(), property);
+
+		property = new BasicSingleValueProperty(new BasicName(
+				"http://www.irods.org/jcr/irods/1.0", AVU_VALUE_PROP),
+				metadataValue.getAvuValue());
+		properties.put(property.getName(), property);
+
+		property = new BasicSingleValueProperty(new BasicName(
+				"http://www.irods.org/jcr/irods/1.0", AVU_UNIT_PROP),
+				metadataValue.getAvuUnit());
+		properties.put(property.getName(), property);
+
+		writer.addProperties(properties);
 	}
 
 	private DocumentWriter newFolderWriter(final String id, final File file,
@@ -1254,41 +1271,57 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 	}
 
-	/**
-	 * @param path
-	 * @param name
-	 * @return
-	 * @throws JargonException
-	 * @throws JargonQueryException
-	 */
-	private Map<Name, Property> getPropertiesForDataObject(final String path,
-			final String name) {
+	private void addAvuChildrenForDataObject(final String path,
+			final DocumentWriter writer) {
 
 		assert path != null && !path.isEmpty();
-		assert name != null && !name.isEmpty();
+		/*
+		 * String id = path;
+		 * 
+		 * if (path.endsWith(DELIMITER)) { id = id.substring(0, id.length() -
+		 * DELIMITER.length()); } if (isContentNode(id)) { id = id.substring(0,
+		 * id.length() - JCR_CONTENT_SUFFIX_LENGTH); }
+		 * 
+		 * if (id.isEmpty()) { id = "/"; }
+		 */
 
-		File fileForProps;
+		List<MetaDataAndDomainData> metadatas;
 		try {
+
+			File fileForProps;
+
 			fileForProps = (File) this.connectorContext
 					.getIrodsAccessObjectFactory()
 					.getIRODSFileFactory(this.getIrodsAccount())
-					.instanceIRODSFile(path, name);
-		} catch (JargonException e) {
-			log.error("jargon exception retrieving file for path", e);
-			throw new DocumentStoreException(
-					"jargon exception retrieving file for path", e);
-		}
+					.instanceIRODSFile(path);
 
-		Map<Name, Property> props = new HashMap<Name, Property>();
-		Property property;
-		List<MetaDataAndDomainData> metadatas;
-		try {
+			log.info("file abs path to search for collection AVUs:{}",
+					fileForProps.getAbsolutePath());
+
 			DataObjectAO dataObjectAO = connectorContext
 					.getIrodsAccessObjectFactory().getDataObjectAO(
 							getIrodsAccount());
 
-			metadatas = dataObjectAO.findMetadataValuesForDataObject(
-					fileForProps.getParent(), fileForProps.getName());
+			metadatas = dataObjectAO
+					.findMetadataValuesForDataObject(fileForProps
+							.getAbsolutePath());
+
+			StringBuilder sb;
+			for (MetaDataAndDomainData metadata : metadatas) {
+				sb = new StringBuilder();
+				sb.append(fileForProps.getAbsolutePath());
+				sb.append(AVU_ATTRIBUTE);
+				sb.append(metadata.getAvuAttribute());
+				sb.append(AVU_VALUE);
+				sb.append(metadata.getAvuValue());
+				String childName = sb.toString();
+				sb.append(JCR_AVU_SUFFIX);
+				String childId = sb.toString();
+				log.info("adding avu child with childName:{}", childName);
+				log.info("avu childId:{}", childId);
+				writer.addChild(childId, childName);
+			}
+
 		} catch (FileNotFoundException e) {
 			log.error("fnf retrieving avus", e);
 			throw new DocumentStoreException(
@@ -1297,212 +1330,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			log.error("jargon exception retrieving avus", e);
 			throw new DocumentStoreException(
 					"jargon exception retrieving avus", e);
-		} catch (JargonQueryException e) {
-			log.error("jargon query exception retrieving avus", e);
-			throw new DocumentStoreException(
-					"jargon query exception retrieving avus", e);
 		}
-
-		List<Object> avuVals;
-		for (MetaDataAndDomainData metadata : metadatas) {
-			avuVals = new ArrayList<Object>();
-			avuVals.add(metadata.getAvuAttribute());
-			avuVals.add(metadata.getAvuValue());
-			avuVals.add(metadata.getAvuUnit());
-
-			property = new BasicMultiValueProperty(new BasicName(
-					"http://www.irods.org/jcr/irods/1.0", "avu"), avuVals);
-
-			props.put(property.getName(), property);
-
-		}
-
-		return props;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * org.modeshape.jcr.federation.spi.ExtraPropertiesStore#removeProperties
-	 * (java.lang.String)
-	 */
-	public boolean removeProperties(final String absolutePath) {
-		CollectionAndDataObjectListAndSearchAO collectionAndDataObjectListAndSearchAO;
-		try {
-			collectionAndDataObjectListAndSearchAO = connectorContext
-					.getIrodsAccessObjectFactory()
-					.getCollectionAndDataObjectListAndSearchAO(
-							getIrodsAccount());
-			ObjStat objStat = collectionAndDataObjectListAndSearchAO
-					.retrieveObjectStatForPath(absolutePath);
-
-			if (objStat.isSomeTypeOfCollection()) {
-				return removePropertiesForCollection(absolutePath);
-			} else {
-
-				return removePropertiesForDataObject(absolutePath);
-			}
-
-		} catch (JargonException e) {
-			throw new DocumentStoreException(absolutePath,
-					"error removing properties");
-		} finally {
-			getConnectorContext().getIrodsAccessObjectFactory()
-					.closeSessionAndEatExceptions();
-		}
-
-	}
-
-	private boolean removePropertiesForDataObject(final String absolutePath)
-			throws JargonException {
-		log.info("removePropertiesForDataObject()");
-		DataObjectAO dataObjectAO = this.getConnectorContext()
-				.getIrodsAccessObjectFactory()
-				.getDataObjectAO(getIrodsAccount());
-		dataObjectAO.deleteAllAVUForDataObject(absolutePath);
-		log.info("deleted");
-		return true;
-	}
-
-	private boolean removePropertiesForCollection(final String absolutePath)
-			throws JargonException {
-		log.info("removePropertiesForCollection()");
-		CollectionAO collectionAO = this.getConnectorContext()
-				.getIrodsAccessObjectFactory()
-				.getCollectionAO(getIrodsAccount());
-		collectionAO.deleteAllAVUMetadata(absolutePath);
-		log.info("deleted");
-		return true;
-	}
-
-	public void storeProperties(final String absolutePath,
-			final Map<Name, Property> properties) {
-
-		// FIXME: I don't know if this is how JCR props map to AVUs will need to
-		// actually test and see
-
-		log.info("storeProperties()");
-
-		if (absolutePath == null || absolutePath.isEmpty()) {
-			throw new IllegalArgumentException("null or empty absolutePath");
-		}
-
-		if (properties == null) {
-			throw new IllegalArgumentException("null properties");
-		}
-
-		if (properties.isEmpty()) {
-			log.info("no props, just exit");
-			return;
-		}
-
-		log.info("marshalling props into AVU metadata");
-
-		List<AvuData> avuDatas = new ArrayList<AvuData>();
-		AvuData avuData;
-		Property property;
-		Object[] values;
-		try {
-			for (Name name : properties.keySet()) {
-
-				log.info("processing name:{}", name);
-				property = properties.get(name);
-				assert property != null;
-				log.info("have property:{}", property);
-
-				if (property.isSingle()) {
-					log.info("single prop, name is attr, prop is value");
-
-					avuData = AvuData.instance(
-							(String) property.getFirstValue(), "", "");
-					log.info("built avu:{}", avuData);
-					avuDatas.add(avuData);
-				} else {
-					log.info("multiple prop, name is atter, prop 1 is attr, prop 2 val, and prop 3 if present is unit");
-
-					values = property.getValuesAsArray();
-					if (values.length == 1) {
-						avuData = AvuData.instance(
-								(String) property.getFirstValue(), "", "");
-						log.info("built avu from 1 value:{}", avuData);
-						avuDatas.add(avuData);
-					} else if (values.length == 2) {
-						avuData = AvuData.instance((String) values[0],
-								(String) values[1], "");
-						log.info("built avu from 2 values:{}", avuData);
-
-					} else if (values.length == 3) {
-						avuData = AvuData.instance((String) values[0],
-								(String) values[1], (String) values[2]);
-						log.info("built avu from 3 values:{}", avuData);
-					} else {
-						throw new DocumentStoreException(absolutePath,
-								"properties for metadata has more than 3 values, unable to handle this");
-					}
-					avuDatas.add(avuData);
-
-				}
-			}
-
-			log.info("check object type to store avus...");
-
-			CollectionAndDataObjectListAndSearchAO collectionAndDataObjectListAndSearchAO = connectorContext
-					.getIrodsAccessObjectFactory()
-					.getCollectionAndDataObjectListAndSearchAO(
-							getIrodsAccount());
-			ObjStat objStat = collectionAndDataObjectListAndSearchAO
-					.retrieveObjectStatForPath(absolutePath);
-
-			if (objStat.isSomeTypeOfCollection()) {
-				storePropertiesForCollection(absolutePath, avuDatas);
-			} else {
-
-				storePropertiesForDataObject(absolutePath, avuDatas);
-			}
-
-			log.info("done");
-
-		} catch (JargonException e) {
-			throw new DocumentStoreException(absolutePath,
-					"error storing properties");
-
-		} finally {
-			getConnectorContext().getIrodsAccessObjectFactory()
-					.closeSessionAndEatExceptions();
-		}
-
-	}
-
-	private void storePropertiesForDataObject(String absolutePath,
-			List<AvuData> avuDatas) throws FileNotFoundException,
-			JargonException {
-		log.info("storePropertiesForDataObject()");
-
-		DataObjectAO dataObjectAO = this.connectorContext
-				.getIrodsAccessObjectFactory().getDataObjectAO(
-						getIrodsAccount());
-		dataObjectAO.addBulkAVUMetadataToDataObject(absolutePath, avuDatas);
-
-	}
-
-	private void storePropertiesForCollection(String absolutePath,
-			List<AvuData> avuDatas) throws JargonException {
-
-		log.info("storePropertiesForCollection()");
-
-		CollectionAO collectionAO = this.connectorContext
-				.getIrodsAccessObjectFactory().getCollectionAO(
-						getIrodsAccount());
-		collectionAO.addBulkAVUMetadataToCollection(absolutePath, avuDatas);
-
-	}
-
-	// @Override
-	public void updateProperties(final String arg0,
-			final Map<Name, Property> arg1) {
-		log.warn("updateProperties Not yet implemented!");
-
 	}
 
 	/**

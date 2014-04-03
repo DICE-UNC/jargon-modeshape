@@ -606,23 +606,38 @@ public class IRODSWriteableConnectorRepoTest {
 
 		assertThat(node.getPrimaryNodeType().getName(), is("nt:file"));
 
-		PropertyIterator iter = node.getProperties();
+		NodeIterator childIter = node.getNodes();
+		int foundAvu = 0;
+		Node childNode = null;
+		Property prop;
 
-		Property child = null;
-		Property avu = null;
+		while (childIter.hasNext()) {
+			childNode = childIter.nextNode();
+			System.out.println("childNode:" + childNode);
+			if (childNode.getPrimaryNodeType().getName()
+					.equals(IRODSWriteableConnector.JCR_IRODS_AVU)) {
+				PropertyIterator propsIter = childNode.getProperties();
 
-		int foundAVU = 0;
-		while (iter.hasNext()) {
-			child = iter.nextProperty();
-			if (child.getName().equals("irods:avu")) {
-				foundAVU++;
-				avu = child;
+				while (propsIter.hasNext()) {
+					prop = propsIter.nextProperty();
+					System.out.println("property:" + prop);
+					if (prop.getName()
+							.equals("irods:"
+									+ IRODSWriteableConnector.AVU_ATTRIBUTE_PROP)) {
+						foundAvu++;
+					}
+				}
+
+			} else {
+				childNode = null;
+				continue;
 			}
-			log.info("property node:{}", child);
 		}
 
-		Assert.assertEquals("did not find two AVUs in properties", 2, foundAVU);
+		Assert.assertNotNull("did not find AVU child node", childNode);
+		Assert.assertEquals(
+				"did not find  avu attribute property of avu child", 2,
+				foundAvu);
 
 	}
-
 }
