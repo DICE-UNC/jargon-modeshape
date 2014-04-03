@@ -56,6 +56,7 @@ import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.Property;
 import org.modeshape.jcr.value.basic.BasicMultiValueProperty;
 import org.modeshape.jcr.value.basic.BasicName;
+import org.modeshape.jcr.value.basic.BasicSingleValueProperty;
 import org.modeshape.jcr.value.binary.ExternalBinaryValue;
 import org.modeshape.jcr.value.binary.UrlBinaryValue;
 import org.slf4j.Logger;
@@ -70,6 +71,11 @@ import org.slf4j.LoggerFactory;
 public class IRODSWriteableConnector extends WritableConnector implements
 		Pageable {
 
+	public static final String AVU_UNIT_PROP = "avuUnit";
+	public static final String AVU_VALUE_PROP = "avuValue";
+	public static final String AVU_ATTRIBUTE_PROP = "avuAttribute";
+	private static final String AVU_VALUE = "##[[[avuValue]]]##";
+	public static final String AVU_ATTRIBUTE = "##[[[avuAttribute]]]##";
 	public static final String JCR_IRODS_IRODSOBJECT = "irods:irodsobject";
 	public static final String JCR_IRODS_AVU_PROP = "irods:avu";
 
@@ -77,24 +83,27 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	public static final Logger log = LoggerFactory
 			.getLogger(IRODSWriteableConnector.class);
 
-	private static final String FILE_SEPARATOR = "/";
-	private static final String DELIMITER = "/";
-	private static final String NT_FOLDER = "nt:folder";
-	private static final String NT_FILE = "nt:file";
-	private static final String NT_RESOURCE = "nt:resource";
-	private static final String MIX_MIME_TYPE = "mix:mimeType";
-	private static final String JCR_PRIMARY_TYPE = "jcr:primaryType";
-	private static final String JCR_DATA = "jcr:data";
-	private static final String JCR_MIME_TYPE = "jcr:mimeType";
-	private static final String JCR_ENCODING = "jcr:encoding";
-	private static final String JCR_CREATED = "jcr:created";
-	private static final String JCR_CREATED_BY = "jcr:createdBy";
-	private static final String JCR_LAST_MODIFIED = "jcr:lastModified";
-	private static final String JCR_LAST_MODIFIED_BY = "jcr:lastModified";
-	private static final String JCR_CONTENT = "jcr:content";
-	private static final String JCR_CONTENT_SUFFIX = DELIMITER + JCR_CONTENT;
-	private static final int JCR_CONTENT_SUFFIX_LENGTH = JCR_CONTENT_SUFFIX
+	public static final String FILE_SEPARATOR = "/";
+	public static final String DELIMITER = "/";
+	public static final String NT_FOLDER = "nt:folder";
+	public static final String NT_FILE = "nt:file";
+	public static final String NT_RESOURCE = "nt:resource";
+	public static final String MIX_MIME_TYPE = "mix:mimeType";
+	public static final String JCR_PRIMARY_TYPE = "jcr:primaryType";
+	public static final String JCR_DATA = "jcr:data";
+	public static final String JCR_MIME_TYPE = "jcr:mimeType";
+	public static final String JCR_ENCODING = "jcr:encoding";
+	public static final String JCR_CREATED = "jcr:created";
+	public static final String JCR_CREATED_BY = "jcr:createdBy";
+	public static final String JCR_LAST_MODIFIED = "jcr:lastModified";
+	public static final String JCR_LAST_MODIFIED_BY = "jcr:lastModified";
+	public static final String JCR_CONTENT = "jcr:content";
+	public static final String JCR_IRODS_AVU = "irods:avu";
+	public static final String JCR_CONTENT_SUFFIX = DELIMITER + JCR_CONTENT;
+	public static final int JCR_CONTENT_SUFFIX_LENGTH = JCR_CONTENT_SUFFIX
 			.length();
+	public static final String JCR_AVU_SUFFIX = DELIMITER + JCR_IRODS_AVU;
+	public static final int JCR_AVU_SUFFIX_LENGTH = JCR_AVU_SUFFIX.length();
 
 	/**
 	 * The string path for a {@link File} object that represents the top-level
@@ -237,6 +246,10 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 */
 	protected boolean isContentNode(final String id) {
 		return id.endsWith(JCR_CONTENT_SUFFIX);
+	}
+
+	protected boolean isAvuNode(final String id) {
+		return id.endsWith(JCR_AVU_SUFFIX);
 	}
 
 	/**
@@ -535,14 +548,22 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 		try {
 
+			boolean isRoot = isRoot(correctedId);
+			boolean isResource = isContentNode(correctedId);
+			boolean isAvu = isAvuNode(correctedId);
+			DocumentWriter writer = null;
+
+			if (isAvu) {
+				log.info("return a doc for an avu");
+				return getDocumentForAvu(id);
+			}
+
 			File file = fileFor(correctedId, false);
 			if (isExcluded(file) || !file.exists()) {
 				return null;
 			}
-			boolean isRoot = isRoot(correctedId);
-			boolean isResource = isContentNode(correctedId);
-			DocumentWriter writer = null;
 			File parentFile = file.getParentFile();
+
 			if (isResource) {
 				log.info("treat as resource...");
 				writer = newDocument(correctedId);
@@ -589,8 +610,10 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				// properties with the same names
 				// (e.g., jcr:primaryType, jcr:mixinTypes, jcr:mimeType, etc.)
 				// ...
-				writer.addProperties(getPropertiesForDataObject(
-						file.getParent(), file.getName()));
+				/*
+				 * writer.addProperties(getPropertiesForDataObject(
+				 * file.getParent(), file.getName()));
+				 */
 
 			} else {
 				log.info("treat as folder..");
@@ -619,6 +642,110 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 	}
 
+	private Document getDocumentForAvu(final String id) {
+
+		log.info("getDocumentForAvu()");
+		assert id != null && !id.isEmpty();
+		DocumentWriter writer = newDocument(id);
+
+		log.info("id:{}", id);
+
+		String myId = id.substring(0, id.length() - JCR_AVU_SUFFIX_LENGTH);
+		// break up id into attr and value and path using delims
+		int idxAttr = myId.indexOf(AVU_ATTRIBUTE);
+		int idxValue = myId.indexOf(AVU_VALUE);
+
+		if (idxAttr == -1) {
+			throw new DocumentStoreException(
+					"avu does not have expected attribute delim");
+		}
+
+		if (idxValue == -1) {
+			throw new DocumentStoreException(
+					"avu does not have expected value delim");
+		}
+
+		String filePath = myId.substring(0, idxAttr);
+		log.info("path for avu file:{}", filePath);
+
+		String attribName = myId.substring(idxAttr + AVU_ATTRIBUTE.length(),
+				idxValue);
+		log.info("avu attrib name:{}", attribName);
+
+		String attribValue = myId.substring(idxValue + AVU_VALUE.length());
+		log.info("avu attrib name:{}", attribName);
+
+		/*
+		 * this is sort of stupid, but find the AVU. Decide whether to have a
+		 * query by attrib/value in Jargon
+		 */
+
+		try {
+			CollectionAO collectionAO = this.getConnectorContext()
+					.getIrodsAccessObjectFactory()
+					.getCollectionAO(getIrodsAccount());
+
+			List<MetaDataAndDomainData> metadatas = collectionAO
+					.findMetadataValuesForCollection(filePath);
+
+			if (metadatas.isEmpty()) {
+				log.error("no metadata found");
+				throw new DocumentStoreException(
+						"no metadata found for given path");
+			}
+
+			MetaDataAndDomainData foundData = null;
+			for (MetaDataAndDomainData metadata : metadatas) {
+				if (metadata.getAvuAttribute().equals(attribName)
+						&& metadata.getAvuValue().equals(attribValue)) {
+					foundData = metadata;
+					break;
+				}
+			}
+
+			if (foundData == null) {
+				log.error("no metadata found in returned avus to match attrib and value");
+				throw new DocumentStoreException(
+						"no metadata found in returned avus to match attrib and value");
+			}
+
+			Map<Name, Property> properties = new HashMap<Name, Property>();
+
+			writer.setPrimaryType(JCR_IRODS_AVU);
+
+			Property property = new BasicSingleValueProperty(new BasicName(
+					"http://www.irods.org/jcr/irods/1.0", AVU_ATTRIBUTE_PROP),
+					foundData.getAvuAttribute());
+
+			properties.put(property.getName(), property);
+
+			property = new BasicSingleValueProperty(new BasicName(
+					"http://www.irods.org/jcr/irods/1.0", AVU_VALUE_PROP),
+					foundData.getAvuValue());
+			properties.put(property.getName(), property);
+
+			property = new BasicSingleValueProperty(new BasicName(
+					"http://www.irods.org/jcr/irods/1.0", AVU_UNIT_PROP),
+					foundData.getAvuUnit());
+			properties.put(property.getName(), property);
+
+			writer.addProperties(properties);
+
+			log.info("added AVU as properties!");
+			Document doc = writer.document();
+			return doc;
+
+		} catch (JargonException e) {
+			log.error("exception getting collection metadata", e);
+			throw new DocumentStoreException("error getting AVU metadata", e);
+		} catch (JargonQueryException e) {
+			log.error("query exception getting collection metadata", e);
+			throw new DocumentStoreException(
+					"query error getting AVU metadata", e);
+		}
+
+	}
+
 	private DocumentWriter newFolderWriter(final String id, final File file,
 			final int offset) {
 
@@ -639,8 +766,10 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				factories().getDateFactory().create(file.lastModified()));
 		writer.addProperty(JCR_CREATED_BY, null); // ignored
 
-		Map<Name, Property> propMap = this.getPropertiesForCollection(id);
-		writer.addProperties(propMap);
+		// Map<Name, Property> propMap = this.getPropertiesForCollection(id);
+		// writer.addProperties(propMap);
+
+		addAvuChildrenForCollection(file.getAbsolutePath(), writer);
 
 		File[] children = file.listFiles(filenameFilter);
 		long totalChildren = 0;
@@ -1060,40 +1189,29 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * @throws JargonException
 	 * @throws JargonQueryException
 	 */
-	private Map<Name, Property> getPropertiesForCollection(final String path) {
+	private void addAvuChildrenForCollection(final String path,
+			final DocumentWriter writer) {
 
 		assert path != null && !path.isEmpty();
-		String id = path;
-
-		if (path.endsWith(DELIMITER)) {
-			id = id.substring(0, id.length() - DELIMITER.length());
-		}
-		if (isContentNode(id)) {
-			id = id.substring(0, id.length() - JCR_CONTENT_SUFFIX_LENGTH);
-		}
-
-		if (id.isEmpty()) {
-			id = "/";
-		}
-
-		Map<Name, Property> props = new HashMap<Name, Property>();
-		Property property;
+		/*
+		 * String id = path;
+		 * 
+		 * if (path.endsWith(DELIMITER)) { id = id.substring(0, id.length() -
+		 * DELIMITER.length()); } if (isContentNode(id)) { id = id.substring(0,
+		 * id.length() - JCR_CONTENT_SUFFIX_LENGTH); }
+		 * 
+		 * if (id.isEmpty()) { id = "/"; }
+		 */
 
 		List<MetaDataAndDomainData> metadatas;
 		try {
 
 			File fileForProps;
-			if (this.isRoot(id)) {
-				fileForProps = (File) this.connectorContext
-						.getIrodsAccessObjectFactory()
-						.getIRODSFileFactory(this.getIrodsAccount())
-						.instanceIRODSFile(this.directoryAbsolutePath);
-			} else {
-				fileForProps = (File) this.connectorContext
-						.getIrodsAccessObjectFactory()
-						.getIRODSFileFactory(this.getIrodsAccount())
-						.instanceIRODSFile(this.directoryAbsolutePath, id);
-			}
+
+			fileForProps = (File) this.connectorContext
+					.getIrodsAccessObjectFactory()
+					.getIRODSFileFactory(this.getIrodsAccount())
+					.instanceIRODSFile(path);
 
 			log.info("file abs path to search for collection AVUs:{}",
 					fileForProps.getAbsolutePath());
@@ -1104,6 +1222,22 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 			metadatas = collectionAO.findMetadataValuesForCollection(
 					fileForProps.getAbsolutePath(), 0);
+
+			StringBuilder sb;
+			for (MetaDataAndDomainData metadata : metadatas) {
+				sb = new StringBuilder();
+				sb.append(fileForProps.getAbsolutePath());
+				sb.append(AVU_ATTRIBUTE);
+				sb.append(metadata.getAvuAttribute());
+				sb.append(AVU_VALUE);
+				sb.append(metadata.getAvuValue());
+				String childName = sb.toString();
+				sb.append(JCR_AVU_SUFFIX);
+				String childId = sb.toString();
+				log.info("adding avu child with childName:{}", childName);
+				log.info("avu childId:{}", childId);
+				writer.addChild(childId, childName);
+			}
 
 		} catch (FileNotFoundException e) {
 			log.error("fnf retrieving avus", e);
@@ -1118,30 +1252,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			throw new DocumentStoreException(
 					"jargon query exception retrieving avus", e);
 		}
-
-		String[] avuVals;
-		for (MetaDataAndDomainData metadata : metadatas) {
-
-			avuVals = new String[3];
-			avuVals[0] = this.getContext().getValueFactories()
-					.getStringFactory().create(metadata.getAvuAttribute());
-			avuVals[1] = this.getContext().getValueFactories()
-					.getStringFactory().create(metadata.getAvuValue());
-			avuVals[2] = this.getContext().getValueFactories()
-					.getStringFactory().create(metadata.getAvuUnit());
-			/*
-			 * avuVals.add(this.getContext().getValueFactories()
-			 * .getStringFactory().create(metadata.getAvuValue()));
-			 * avuVals.add(this.getContext().getValueFactories()
-			 * .getStringFactory().create(metadata.getAvuUnit()));
-			 */
-			property = new BasicMultiValueProperty(new BasicName(
-					"http://www.irods.org/jcr/irods/1.0", "avu"), avuVals);
-			props.put(property.getName(), property);
-		}
-
-		return props;
-
 	}
 
 	/**

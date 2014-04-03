@@ -422,34 +422,40 @@ public class IRODSWriteableConnectorRepoTest {
 
 		assertThat(node.getPrimaryNodeType().getName(), is("nt:folder"));
 
-		PropertyIterator iter = node.getProperties();
+		NodeIterator childIter = node.getNodes();
+		boolean foundChildren = false;
 
-		Property child = null;
-		Property avu = null;
-
-		boolean foundAVU = false;
-		while (iter.hasNext()) {
-			child = iter.nextProperty();
-			if (child.getName().equals("irods:avu")) {
-				foundAVU = true;
-				avu = child;
+		Node childNode = null;
+		while (childIter.hasNext()) {
+			childNode = childIter.nextNode();
+			System.out.println("childNode:" + childNode);
+			if (childNode.getPrimaryNodeType().getName()
+					.equals(IRODSWriteableConnector.JCR_IRODS_AVU)) {
+				break;
+			} else {
+				childNode = null;
+				continue;
 			}
-			log.info("property node:{}", child);
 		}
 
-		Assert.assertTrue("did not find AVU in properties", foundAVU);
-		String avuAttrib = avu.getValues()[0].getString();
-		log.info("avuAttrib:{}", avuAttrib);
-		Assert.assertEquals("did not properly get string value of attr",
-				expectedAttribName, avuAttrib);
-		String avuValue = avu.getValues()[1].getString();
-		log.info("avuValue:{}", avuValue);
-		Assert.assertEquals("did not properly get string value",
-				expectedAttribValue, avuValue);
-		String avuUnit = avu.getValues()[2].getString();
-		log.info("avuUnit:{}", avuUnit);
-		Assert.assertEquals("did not properly get string unit",
-				expectedAttribUnit, avuUnit);
+		Assert.assertNotNull("did not find AVU child node", childNode);
+
+		PropertyIterator propsIter = childNode.getProperties();
+		boolean foundAvu = false;
+
+		Property prop;
+		while (propsIter.hasNext()) {
+			prop = propsIter.nextProperty();
+			System.out.println("property:" + prop);
+			if (prop.getName().equals(
+					"irods:" + IRODSWriteableConnector.AVU_ATTRIBUTE_PROP)) {
+				foundAvu = true;
+				break;
+			}
+		}
+
+		Assert.assertTrue("did not find avu attribute property of avu child",
+				foundAvu);
 
 	}
 
