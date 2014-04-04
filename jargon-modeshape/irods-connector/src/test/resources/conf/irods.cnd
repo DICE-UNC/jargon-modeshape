@@ -10,10 +10,10 @@
 //------------------------------------------------------------------------------
 
 [irods:irodsobject]  mixin
-+ avu (irods:avu) *
++ avu (irods:avu) * protected
 
 
 [irods:avu] > nt:unstructured 
-- irods:avuAttribute (string) mandatory
-- irods:avuValue (string) mandatory
+- irods:avuAttribute (string) mandatory 
+- irods:avuValue (string) mandatory 
 - irods:avuUnit (string) mandatory

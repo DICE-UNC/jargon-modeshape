@@ -423,8 +423,6 @@ public class IRODSWriteableConnectorRepoTest {
 		assertThat(node.getPrimaryNodeType().getName(), is("nt:folder"));
 
 		NodeIterator childIter = node.getNodes();
-		boolean foundChildren = false;
-
 		Node childNode = null;
 		while (childIter.hasNext()) {
 			childNode = childIter.nextNode();

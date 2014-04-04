@@ -60,7 +60,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ModeShape SPI connector
+ * ModeShape SPI connector for iRODS, based on the ModeShape file connector.
+ * <p/>
+ * Currently this connector processes collections and data objects, as well as
+ * AVUs in read-only mode
  * 
  * @author Mike Conway - DICE (www.irods.org)
  * 
@@ -259,6 +262,12 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * @param id
 	 *            the identifier; may not be null
 	 * @return the File object for the given identifier
+	 * @param closeInFinally
+	 *            <code>boolean</code> that indicates whether the irods
+	 *            connection should be closed in the finally. Call with true
+	 *            when fileFor is invoked in the public API for now, don't when
+	 *            another method will handle this. Prevents unnecessary twerking
+	 *            of the connection.
 	 * @see #isRoot(String)
 	 * @see #isContentNode(String)
 	 * @see #idFor(File)
@@ -271,16 +280,17 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		if (id.endsWith(DELIMITER)) {
 			id = id.substring(0, id.length() - DELIMITER.length());
 		}
+
 		if (isContentNode(id)) {
 			id = id.substring(0, id.length() - JCR_CONTENT_SUFFIX_LENGTH);
+		} else if (isAvuNode(id)) {
+
+			// is an avu, strip out the appended attrib
+			int idxOfAttr = id.indexOf(AVU_ATTRIBUTE);
+
+			id = id.substring(0, idxOfAttr);
 		}
 
-		/*
-		 * String myDir = directory.getAbsolutePath().substring(0,
-		 * directory.getAbsolutePath().leid.length());
-		 * 
-		 * log.info("myDir:{}", myDir);
-		 */
 		try {
 			return (File) getConnectorContext().getIrodsAccessObjectFactory()
 					.getIRODSFileFactory(getIrodsAccount())
@@ -550,22 +560,20 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			boolean isAvu = isAvuNode(correctedId);
 			DocumentWriter writer = null;
 
-			/*
-			 * Note that I won't be asking for an avu unless the parent file or
-			 * folder was 'included'
-			 */
-			if (isAvu) {
-				log.info("return a doc for an avu");
-				return getDocumentForAvu(id);
-			}
-
 			File file = fileFor(correctedId, false);
 			if (isExcluded(file) || !file.exists()) {
 				return null;
 			}
 			File parentFile = file.getParentFile();
 
-			if (isResource) {
+			/*
+			 * Note that I won't be asking for an avu unless the parent file or
+			 * folder was 'included'
+			 */
+			if (isAvu) {
+				log.info("return a doc for an avu");
+				writer = getDocumentForAvu(id);
+			} else if (isResource) {
 				log.info("treat as resource...");
 				writer = newDocument(correctedId);
 				BinaryValue binaryValue = binaryFor(file);
@@ -607,7 +615,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				writer.addChild(childId, JCR_CONTENT);
 
 				log.info("get avus and add as props to the file");
-				addAvuChildrenForDataObject(file.getAbsolutePath(), writer);
+				addAvuChildrenForDataObject(file.getAbsolutePath(), id, writer);
 
 			} else {
 				log.info("treat as folder..");
@@ -636,7 +644,16 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 	}
 
-	private Document getDocumentForAvu(final String id) {
+	/**
+	 * For a given id, which is a stringified file path along with the delimited
+	 * attrib and value, return the JCR document that holds that AVU with the
+	 * AVU values as properties of the document of type irods:avu.
+	 * 
+	 * @param id
+	 *            <code>String</code> with the encoded path,attrib,value data
+	 * @return {@link DocumentWriter} that represents the child AVU
+	 */
+	private DocumentWriter getDocumentForAvu(final String id) {
 
 		log.info("getDocumentForAvu()");
 		assert id != null && !id.isEmpty();
@@ -669,6 +686,12 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		String attribValue = myId.substring(idxValue + AVU_VALUE.length());
 		log.info("avu attrib name:{}", attribName);
 
+		StringBuilder sb = new StringBuilder();
+		sb.append(this.directoryAbsolutePath);
+		sb.append(filePath.substring(1));
+
+		String myFilePath = sb.toString();
+
 		/*
 		 * this is sort of stupid, but find the AVU. Decide whether to have a
 		 * query by attrib/value in Jargon
@@ -683,7 +706,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 					.getCollectionAndDataObjectListAndSearchAO(
 							getIrodsAccount());
 			ObjStat objStat = collectionAndDataObjectListAndSearchAO
-					.retrieveObjectStatForPath(filePath);
+					.retrieveObjectStatForPath(myFilePath);
 
 			if (objStat.isSomeTypeOfCollection()) {
 				CollectionAO collectionAO = this.getConnectorContext()
@@ -691,13 +714,13 @@ public class IRODSWriteableConnector extends WritableConnector implements
 						.getCollectionAO(getIrodsAccount());
 
 				metadatas = collectionAO
-						.findMetadataValuesForCollection(filePath);
+						.findMetadataValuesForCollection(myFilePath);
 			} else {
 				DataObjectAO dataObjectAO = this.getConnectorContext()
 						.getIrodsAccessObjectFactory()
 						.getDataObjectAO(getIrodsAccount());
 				metadatas = dataObjectAO
-						.findMetadataValuesForDataObject(filePath);
+						.findMetadataValuesForDataObject(myFilePath);
 			}
 
 			if (metadatas.isEmpty()) {
@@ -724,8 +747,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			addAvuMetadataAsProperty(writer, foundData);
 
 			log.info("added AVU as properties!");
-			Document doc = writer.document();
-			return doc;
+			return writer;
 
 		} catch (JargonException e) {
 			log.error("exception getting collection metadata", e);
@@ -738,6 +760,15 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 	}
 
+	/**
+	 * Given a child document to contain the AVU, add the AVU values as
+	 * properties in this child object
+	 * 
+	 * @param writer
+	 *            {@link DocumentWriter} that is creating the irods:avu document
+	 * @param metadataValue
+	 *            {@link MetaDataAndDomainData} that represents the iRODS AVU
+	 */
 	private void addAvuMetadataAsProperty(DocumentWriter writer,
 			MetaDataAndDomainData metadataValue) {
 		Map<Name, Property> properties = new HashMap<Name, Property>();
@@ -763,6 +794,15 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		writer.addProperties(properties);
 	}
 
+	/**
+	 * Create a document writer for a folder, including it's file and avu
+	 * children
+	 * 
+	 * @param id
+	 * @param file
+	 * @param offset
+	 * @return
+	 */
 	private DocumentWriter newFolderWriter(final String id, final File file,
 			final int offset) {
 
@@ -783,10 +823,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				factories().getDateFactory().create(file.lastModified()));
 		writer.addProperty(JCR_CREATED_BY, null); // ignored
 
-		// Map<Name, Property> propMap = this.getPropertiesForCollection(id);
-		// writer.addProperties(propMap);
-
-		addAvuChildrenForCollection(file.getAbsolutePath(), writer);
+		addAvuChildrenForCollection(file.getAbsolutePath(), id, writer);
 
 		File[] children = file.listFiles(filenameFilter);
 		long totalChildren = 0;
@@ -841,12 +878,26 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.federation.spi.Connector#getDocumentPathsById(java.
+	 * lang.String)
+	 */
 	@Override
 	public Collection<String> getDocumentPathsById(final String id) {
 		// this connector treats the ID as the path
 		return Collections.singletonList(id);
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.federation.spi.Connector#getBinaryValue(java.lang.String
+	 * )
+	 */
 	@Override
 	public ExternalBinaryValue getBinaryValue(final String id) {
 
@@ -867,6 +918,13 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.federation.spi.Connector#removeDocument(java.lang.String
+	 * )
+	 */
 	@Override
 	public boolean removeDocument(final String id) {
 
@@ -891,6 +949,13 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.federation.spi.Connector#storeDocument(org.infinispan
+	 * .schematic.document.Document)
+	 */
 	@Override
 	public void storeDocument(final Document document) {
 		// Create a new directory or file described by the document ...
@@ -957,6 +1022,13 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.federation.spi.Connector#newDocumentId(java.lang.String
+	 * , org.modeshape.jcr.value.Name, org.modeshape.jcr.value.Name)
+	 */
 	@Override
 	public String newDocumentId(final String parentId,
 			final Name newDocumentName, final Name newDocumentPrimaryType) {
@@ -994,6 +1066,13 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		return id.toString();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.federation.spi.Connector#updateDocument(org.modeshape
+	 * .jcr.federation.spi.DocumentChanges)
+	 */
 	@Override
 	public void updateDocument(final DocumentChanges documentChanges) {
 
@@ -1006,16 +1085,11 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		try {
 
 			String id = documentChanges.getDocumentId();
-
 			log.info("id for doc changes:{}", id);
-
 			Document document = documentChanges.getDocument();
 			DocumentReader reader = readDocument(document);
-
 			File file = fileFor(id, false);
-
 			log.info("file for id:{}", file);
-
 			String idOrig = id;
 
 			// if we're dealing with the root of the connector, we can't process
@@ -1099,28 +1173,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			Map<String, Name> renamedChildren = childrenChanges.getRenamed();
 			for (String renamedChildId : renamedChildren.keySet()) {
 
-				log.info("renamed child id:{}", renamedChildId);
-
-				File child = fileFor(renamedChildId, false);
-				log.info("child:{}", child);
-				Name newName = renamedChildren.get(renamedChildId);
-				String newNameStr = getContext().getValueFactories()
-						.getStringFactory().create(newName);
-				File renamedChild;
-				try {
-					renamedChild = (File) connectorContext
-							.getIrodsAccessObjectFactory()
-							.getIRODSFileFactory(getIrodsAccount())
-							.instanceIRODSFile(file, newNameStr);
-					log.info("renamedChild:{}", renamedChild);
-				} catch (JargonException e) {
-					throw new DocumentStoreException(id, e);
-				}
-
-				if (!((IRODSFile) child).renameTo((IRODSFile) renamedChild)) {
-					getLogger().debug("Cannot rename {0} to {1}", child,
-							renamedChild);
-				}
+				renameChildrenFiles(id, file, renamedChildren, renamedChildId);
 			}
 
 			String primaryType = reader.getPrimaryTypeName();
@@ -1173,6 +1226,32 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 	}
 
+	private File renameChildrenFiles(String id, File file,
+			Map<String, Name> renamedChildren, String renamedChildId) {
+		log.info("renamed child id:{}", renamedChildId);
+
+		File child = fileFor(renamedChildId, false);
+		log.info("child:{}", child);
+		Name newName = renamedChildren.get(renamedChildId);
+		String newNameStr = getContext().getValueFactories().getStringFactory()
+				.create(newName);
+		File renamedChild;
+		try {
+			renamedChild = (File) connectorContext
+					.getIrodsAccessObjectFactory()
+					.getIRODSFileFactory(getIrodsAccount())
+					.instanceIRODSFile(file, newNameStr);
+			log.info("renamedChild:{}", renamedChild);
+		} catch (JargonException e) {
+			throw new DocumentStoreException(id, e);
+		}
+
+		if (!((IRODSFile) child).renameTo((IRODSFile) renamedChild)) {
+			getLogger().debug("Cannot rename {0} to {1}", child, renamedChild);
+		}
+		return renamedChild;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -1201,25 +1280,18 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	}
 
 	/**
+	 * For a given collection, create a set of child documents of type irods:avu
+	 * that represents the AVU metadata
+	 * 
 	 * @param path
-	 * @return
-	 * @throws JargonException
-	 * @throws JargonQueryException
+	 *            <code>String</code> with the path to the iRODS collection
+	 * @param writer
+	 *            {@link DocumentWriter} for the parent collection
 	 */
 	private void addAvuChildrenForCollection(final String path,
-			final DocumentWriter writer) {
+			final String id, final DocumentWriter writer) {
 
 		assert path != null && !path.isEmpty();
-		/*
-		 * String id = path;
-		 * 
-		 * if (path.endsWith(DELIMITER)) { id = id.substring(0, id.length() -
-		 * DELIMITER.length()); } if (isContentNode(id)) { id = id.substring(0,
-		 * id.length() - JCR_CONTENT_SUFFIX_LENGTH); }
-		 * 
-		 * if (id.isEmpty()) { id = "/"; }
-		 */
-
 		List<MetaDataAndDomainData> metadatas;
 		try {
 
@@ -1240,21 +1312,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			metadatas = collectionAO.findMetadataValuesForCollection(
 					fileForProps.getAbsolutePath(), 0);
 
-			StringBuilder sb;
-			for (MetaDataAndDomainData metadata : metadatas) {
-				sb = new StringBuilder();
-				sb.append(fileForProps.getAbsolutePath());
-				sb.append(AVU_ATTRIBUTE);
-				sb.append(metadata.getAvuAttribute());
-				sb.append(AVU_VALUE);
-				sb.append(metadata.getAvuValue());
-				String childName = sb.toString();
-				sb.append(JCR_AVU_SUFFIX);
-				String childId = sb.toString();
-				log.info("adding avu child with childName:{}", childName);
-				log.info("avu childId:{}", childId);
-				writer.addChild(childId, childName);
-			}
+			addChildrenForEachAvu(writer, metadatas, fileForProps, id);
 
 		} catch (FileNotFoundException e) {
 			log.error("fnf retrieving avus", e);
@@ -1271,19 +1329,19 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 	}
 
+	/**
+	 * For a given data object, create a set of child documents of type
+	 * irods:avu that represents the AVU metadata
+	 * 
+	 * @param path
+	 *            <code>String</code> with the path to the iRODS collection
+	 * @param writer
+	 *            {@link DocumentWriter} for the parent collection
+	 */
 	private void addAvuChildrenForDataObject(final String path,
-			final DocumentWriter writer) {
+			final String id, final DocumentWriter writer) {
 
 		assert path != null && !path.isEmpty();
-		/*
-		 * String id = path;
-		 * 
-		 * if (path.endsWith(DELIMITER)) { id = id.substring(0, id.length() -
-		 * DELIMITER.length()); } if (isContentNode(id)) { id = id.substring(0,
-		 * id.length() - JCR_CONTENT_SUFFIX_LENGTH); }
-		 * 
-		 * if (id.isEmpty()) { id = "/"; }
-		 */
 
 		List<MetaDataAndDomainData> metadatas;
 		try {
@@ -1306,21 +1364,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 					.findMetadataValuesForDataObject(fileForProps
 							.getAbsolutePath());
 
-			StringBuilder sb;
-			for (MetaDataAndDomainData metadata : metadatas) {
-				sb = new StringBuilder();
-				sb.append(fileForProps.getAbsolutePath());
-				sb.append(AVU_ATTRIBUTE);
-				sb.append(metadata.getAvuAttribute());
-				sb.append(AVU_VALUE);
-				sb.append(metadata.getAvuValue());
-				String childName = sb.toString();
-				sb.append(JCR_AVU_SUFFIX);
-				String childId = sb.toString();
-				log.info("adding avu child with childName:{}", childName);
-				log.info("avu childId:{}", childId);
-				writer.addChild(childId, childName);
-			}
+			addChildrenForEachAvu(writer, metadatas, fileForProps, id);
 
 		} catch (FileNotFoundException e) {
 			log.error("fnf retrieving avus", e);
@@ -1330,6 +1374,33 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			log.error("jargon exception retrieving avus", e);
 			throw new DocumentStoreException(
 					"jargon exception retrieving avus", e);
+		}
+	}
+
+	/**
+	 * For each AVU in the list, add as a child of the given document
+	 * 
+	 * @param writer
+	 * @param metadatas
+	 * @param fileForProps
+	 */
+	private void addChildrenForEachAvu(final DocumentWriter writer,
+			List<MetaDataAndDomainData> metadatas, File fileForProps,
+			final String id) {
+		StringBuilder sb;
+		for (MetaDataAndDomainData metadata : metadatas) {
+			sb = new StringBuilder();
+			sb.append(id);
+			sb.append(AVU_ATTRIBUTE);
+			sb.append(metadata.getAvuAttribute());
+			sb.append(AVU_VALUE);
+			sb.append(metadata.getAvuValue());
+			String childName = sb.toString();
+			sb.append(JCR_AVU_SUFFIX);
+			String childId = sb.toString();
+			log.info("adding avu child with childName:{}", childName);
+			log.info("avu childId:{}", childId);
+			writer.addChild(childId, childName);
 		}
 	}
 
