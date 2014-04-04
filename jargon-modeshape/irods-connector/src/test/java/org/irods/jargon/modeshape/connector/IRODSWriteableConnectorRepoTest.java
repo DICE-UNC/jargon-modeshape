@@ -638,4 +638,85 @@ public class IRODSWriteableConnectorRepoTest {
 				foundAvu);
 
 	}
+
+	@Test
+	public void testRenameADir() throws Exception {
+
+		String subdirPrefix = "testRenameADir";
+		String subdirTargetPrefix = "testRenameADirTarget";
+		String fileName = "testRenameADir.txt";
+
+		int count = 30;
+
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
+
+		String targetIrodsCollection = testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH);
+		IRODSFile collParent = irodsFileSystem
+				.getIRODSFileFactory(irodsAccount).instanceIRODSFile(
+						targetIrodsCollection, subdirPrefix);
+		collParent.mkdir();
+		collParent.close();
+		IRODSFile collChild;
+
+		String myTarget = "";
+
+		for (int i = 0; i < count; i++) {
+			myTarget = collParent.getAbsolutePath() + "/c" + (10000 + i)
+					+ subdirPrefix;
+			collChild = irodsFileSystem.getIRODSFileFactory(irodsAccount)
+					.instanceIRODSFile(myTarget);
+			collChild.mkdir();
+			collChild.close();
+		}
+
+		for (int i = 0; i < count; i++) {
+			myTarget = collParent.getAbsolutePath() + "/c" + (10000 + i)
+					+ fileName;
+			collChild = irodsFileSystem.getIRODSFileFactory(irodsAccount)
+					.instanceIRODSFile(myTarget);
+			collChild.createNewFile();
+			collChild.close();
+		}
+
+		session.save();
+		session.refresh(true);
+
+		String sourceAbsPath = "/irodsGrid/"
+				+ testingProperties
+						.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+				+ "/" + IRODS_TEST_SUBDIR_PATH + "/" + subdirPrefix;
+
+		String targetAbsPath = "/irodsGrid/"
+				+ testingProperties
+						.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+				+ "/" + IRODS_TEST_SUBDIR_PATH + "/" + subdirTargetPrefix;
+
+		// Node jcrNode = session.getNode(sourceAbsPath);
+
+		session.move(sourceAbsPath, targetAbsPath);
+
+		try {
+			session.save();
+		} catch (Exception e) {
+			// this stubs out a weird error with the rename...see if iRODS shows
+			// it anyhow
+		}
+
+		// now look at target in iRODS
+
+		targetIrodsCollection = testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH + "/"
+								+ subdirTargetPrefix);
+
+		IRODSFile targetFile = irodsFileSystem
+				.getIRODSFileFactory(irodsAccount).instanceIRODSFile(
+						targetIrodsCollection);
+
+		Assert.assertTrue("did not find renamed file", targetFile.exists());
+
+	}
 }
