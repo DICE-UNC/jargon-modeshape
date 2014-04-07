@@ -424,6 +424,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			if (contentBasedSha1()) {
 				log.info("content based SHA1, computing for {} ...",
 						file.getAbsolutePath());
+
 				DataObjectAO dataObjectAO = connectorContext
 						.getIrodsAccessObjectFactory().getDataObjectAO(
 								getIrodsAccount());
@@ -823,7 +824,9 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				factories().getDateFactory().create(file.lastModified()));
 		writer.addProperty(JCR_CREATED_BY, null); // ignored
 
+		log.info("adding AVU children for the collection");
 		addAvuChildrenForCollection(file.getAbsolutePath(), id, writer);
+		log.info("AVU children added");
 
 		File[] children = file.listFiles(filenameFilter);
 		long totalChildren = 0;
@@ -1426,10 +1429,11 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		IRODSAccount irodsAccount = connectorContext.getProxyAccount();
 		if (irodsAccount == null) {
 			try {
-				irodsAccount = IRODSAccount.instance("fedZone1", 1247, "test1",
-						"test", "", "fedZone1", "");
-				// irodsAccount = IRODSAccount.instance("localhost", 1247,
-				// "test1", "test", "", "test1", "");
+				// irodsAccount = IRODSAccount.instance("fedZone1", 1247,
+				// "test1",
+				// "test", "", "fedZone1", "");
+				irodsAccount = IRODSAccount.instance("localhost", 1247,
+						"test1", "test", "", "test1", "");
 			} catch (JargonException e) {
 				throw new JargonRuntimeException(
 						"unable to create irodsAccount", e);

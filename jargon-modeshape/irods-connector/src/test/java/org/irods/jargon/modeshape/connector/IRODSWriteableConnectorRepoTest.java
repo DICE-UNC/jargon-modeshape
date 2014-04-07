@@ -139,8 +139,6 @@ public class IRODSWriteableConnectorRepoTest {
 
 		session.refresh(false);
 
-		Thread.sleep(10000);
-
 		Node rootNode = session
 				.getNode("/irodsGrid/"
 						+ testingProperties
