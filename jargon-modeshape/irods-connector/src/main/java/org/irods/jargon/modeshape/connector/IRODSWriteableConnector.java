@@ -74,8 +74,9 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	public static final String AVU_UNIT_PROP = "avuUnit";
 	public static final String AVU_VALUE_PROP = "avuValue";
 	public static final String AVU_ATTRIBUTE_PROP = "avuAttribute";
-	private static final String AVU_VALUE = "##[[[avuValue]]]##";
-	public static final String AVU_ATTRIBUTE = "##[[[avuAttribute]]]##";
+	private static final String AVU_ID = "/avuId";
+	// private static final String AVU_VALUE = "##[[[avuValue]]]##";
+	// public static final String AVU_ATTRIBUTE = "##[[[avuAttribute]]]##";
 	public static final String JCR_IRODS_IRODSOBJECT = "irods:irodsobject";
 	public static final String JCR_IRODS_AVU_PROP = "irods:avu";
 
@@ -285,8 +286,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			id = id.substring(0, id.length() - JCR_CONTENT_SUFFIX_LENGTH);
 		} else if (isAvuNode(id)) {
 
-			// is an avu, strip out the appended attrib
-			int idxOfAttr = id.indexOf(AVU_ATTRIBUTE);
+			// is an avu, strip out the appended id
+			int idxOfAttr = id.indexOf(AVU_ID);
 
 			id = id.substring(0, idxOfAttr);
 		}
@@ -664,28 +665,25 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 		String myId = id.substring(0, id.length() - JCR_AVU_SUFFIX_LENGTH);
 		// break up id into attr and value and path using delims
-		int idxAttr = myId.indexOf(AVU_ATTRIBUTE);
-		int idxValue = myId.indexOf(AVU_VALUE);
+		int idxAttr = myId.indexOf(AVU_ID);
 
 		if (idxAttr == -1) {
 			throw new DocumentStoreException(
-					"avu does not have expected attribute delim");
-		}
-
-		if (idxValue == -1) {
-			throw new DocumentStoreException(
-					"avu does not have expected value delim");
+					"avu does not have expected id  delim");
 		}
 
 		String filePath = myId.substring(0, idxAttr);
 		log.info("path for avu file:{}", filePath);
 
-		String attribName = myId.substring(idxAttr + AVU_ATTRIBUTE.length(),
-				idxValue);
-		log.info("avu attrib name:{}", attribName);
-
-		String attribValue = myId.substring(idxValue + AVU_VALUE.length());
-		log.info("avu attrib name:{}", attribName);
+		int attribId;
+		try {
+			attribId = Integer.parseInt(myId.substring(idxAttr
+					+ AVU_ID.length()));
+		} catch (NumberFormatException e) {
+			log.error("attrib id is not a number", e);
+			throw new DocumentStoreException(
+					"attribute id is missing from avu id", e);
+		}
 
 		StringBuilder sb = new StringBuilder();
 		sb.append(this.directoryAbsolutePath);
@@ -699,7 +697,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		 */
 
 		try {
-			List<MetaDataAndDomainData> metadatas;
+			MetaDataAndDomainData metadata;
 			log.info("getting objstat for this path");
 			CollectionAndDataObjectListAndSearchAO collectionAndDataObjectListAndSearchAO = this
 					.getConnectorContext()
@@ -714,38 +712,18 @@ public class IRODSWriteableConnector extends WritableConnector implements
 						.getIrodsAccessObjectFactory()
 						.getCollectionAO(getIrodsAccount());
 
-				metadatas = collectionAO
-						.findMetadataValuesForCollection(myFilePath);
+				metadata = collectionAO.findMetadataValueForCollectionById(
+						objStat, attribId);
+
 			} else {
 				DataObjectAO dataObjectAO = this.getConnectorContext()
 						.getIrodsAccessObjectFactory()
 						.getDataObjectAO(getIrodsAccount());
-				metadatas = dataObjectAO
-						.findMetadataValuesForDataObject(myFilePath);
+				metadata = dataObjectAO.findMetadataValueForDataObjectById(
+						objStat, attribId);
 			}
 
-			if (metadatas.isEmpty()) {
-				log.error("no metadata found");
-				throw new DocumentStoreException(
-						"no metadata found for given path");
-			}
-
-			MetaDataAndDomainData foundData = null;
-			for (MetaDataAndDomainData metadata : metadatas) {
-				if (metadata.getAvuAttribute().equals(attribName)
-						&& metadata.getAvuValue().equals(attribValue)) {
-					foundData = metadata;
-					break;
-				}
-			}
-
-			if (foundData == null) {
-				log.error("no metadata found in returned avus to match attrib and value");
-				throw new DocumentStoreException(
-						"no metadata found in returned avus to match attrib and value");
-			}
-
-			addAvuMetadataAsProperty(writer, foundData);
+			addAvuMetadataAsProperty(writer, metadata);
 
 			log.info("added AVU as properties!");
 			return writer;
@@ -753,12 +731,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		} catch (JargonException e) {
 			log.error("exception getting collection metadata", e);
 			throw new DocumentStoreException("error getting AVU metadata", e);
-		} catch (JargonQueryException e) {
-			log.error("query exception getting collection metadata", e);
-			throw new DocumentStoreException(
-					"query error getting AVU metadata", e);
 		}
-
 	}
 
 	/**
@@ -1394,10 +1367,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		for (MetaDataAndDomainData metadata : metadatas) {
 			sb = new StringBuilder();
 			sb.append(id);
-			sb.append(AVU_ATTRIBUTE);
-			sb.append(metadata.getAvuAttribute());
-			sb.append(AVU_VALUE);
-			sb.append(metadata.getAvuValue());
+			sb.append(AVU_ID);
+			sb.append(metadata.getAvuId());
 			String childName = sb.toString();
 			sb.append(JCR_AVU_SUFFIX);
 			String childId = sb.toString();
@@ -1429,11 +1400,10 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		IRODSAccount irodsAccount = connectorContext.getProxyAccount();
 		if (irodsAccount == null) {
 			try {
-				// irodsAccount = IRODSAccount.instance("fedZone1", 1247,
-				// "test1",
-				// "test", "", "fedZone1", "");
-				irodsAccount = IRODSAccount.instance("localhost", 1247,
-						"test1", "test", "", "test1", "");
+				irodsAccount = IRODSAccount.instance("fedZone1", 1247, "test1",
+						"test", "", "fedZone1", "");
+				// irodsAccount = IRODSAccount.instance("localhost", 1247,
+				// "test1", "test", "", "test1", "");
 			} catch (JargonException e) {
 				throw new JargonRuntimeException(
 						"unable to create irodsAccount", e);

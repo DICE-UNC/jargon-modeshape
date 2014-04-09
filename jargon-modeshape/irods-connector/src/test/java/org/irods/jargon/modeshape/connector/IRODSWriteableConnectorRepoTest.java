@@ -13,6 +13,7 @@ import java.util.concurrent.Future;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 
@@ -368,14 +369,25 @@ public class IRODSWriteableConnectorRepoTest {
 						+ testingProperties
 								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
 						+ "/" + IRODS_TEST_SUBDIR_PATH + "/" + testFileName);
+		Node parent = node.getParent();
 
 		node.remove();
+
 		session.save();
+		boolean gotException = false;
+		try {
+			Node actual = session
+					.getNode("/irodsGrid/"
+							+ testingProperties
+									.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
+							+ "/" + IRODS_TEST_SUBDIR_PATH + "/" + testFileName);
 
-		IRODSFile actual = irodsFileSystem.getIRODSFileFactory(irodsAccount)
-				.instanceIRODSFile(targetIrodsCollection, testFileName);
+		} catch (PathNotFoundException pnf) {
+			gotException = true;
+		}
 
-		Assert.assertFalse("file does not exist", actual.exists());
+		Assert.assertTrue("file should not exist", gotException);
+		session.refresh(true);
 
 	}
 

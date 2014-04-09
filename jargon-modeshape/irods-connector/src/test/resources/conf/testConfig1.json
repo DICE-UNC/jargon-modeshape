@@ -23,13 +23,13 @@
     "externalSources" : {
         "irods" : {
             "classname" : "org.irods.jargon.modeshape.connector.IRODSWriteableConnector",
-            "directoryPath" : "/test1/home/test1",
+            "directoryPath" : "/fedZone1/home/test1",
             "projections" : [
                 "default:/irodsGrid => /"
             ],
             "readOnly" : false,
             "addMimeTypeMixin" : false,
-             "cacheTtlSeconds" : 1,
+             "cacheTtlSeconds" : 0,
             "exclusionPattern" : ".+[.]tmp$"
         }
     } ,

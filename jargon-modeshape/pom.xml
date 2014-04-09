@@ -12,7 +12,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<jargon.version>3.3.3-SNAPSHOT</jargon.version>
 		<findbugs.version>2.5.2</findbugs.version>
-		<modeshape.version>3.7.1.Final</modeshape.version>
+		<modeshape.version>3.7.2.Final</modeshape.version>
 	</properties>
 	<issueManagement>
 		<system>GitHub</system>
