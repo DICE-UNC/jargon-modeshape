@@ -111,7 +111,7 @@ public class IRODSWriteableConnectorRepoTest {
 
 	@Before
 	public void before() throws Exception {
-		session.refresh(true);
+		session.refresh(false);
 
 	}
 
@@ -369,7 +369,7 @@ public class IRODSWriteableConnectorRepoTest {
 						+ testingProperties
 								.getProperty(TestingPropertiesHelper.IRODS_SCRATCH_DIR_KEY)
 						+ "/" + IRODS_TEST_SUBDIR_PATH + "/" + testFileName);
-		Node parent = node.getParent();
+		// Node parent = node.getParent();
 
 		node.remove();
 
