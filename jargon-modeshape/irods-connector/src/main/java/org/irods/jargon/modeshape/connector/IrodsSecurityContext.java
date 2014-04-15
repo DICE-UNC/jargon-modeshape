@@ -14,7 +14,7 @@ import org.modeshape.jcr.security.SecurityContext;
  */
 public class IrodsSecurityContext implements SecurityContext {
 
-	private IRODSAccount irodsAccount;
+	private final IRODSAccount irodsAccount;
 
 	/**
 	 * Default constructor takes the iRODS account used to log in
@@ -26,6 +26,7 @@ public class IrodsSecurityContext implements SecurityContext {
 		if (irodsAccount == null) {
 			throw new IllegalArgumentException("null irodsAccount");
 		}
+		this.irodsAccount = irodsAccount;
 	}
 
 	/*
@@ -68,6 +69,10 @@ public class IrodsSecurityContext implements SecurityContext {
 	public void logout() {
 		// does nothing
 
+	}
+
+	public IRODSAccount getIrodsAccount() {
+		return irodsAccount;
 	}
 
 }

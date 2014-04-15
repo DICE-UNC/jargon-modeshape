@@ -91,10 +91,6 @@ public class IRODSWriteableConnectorRepoTest {
 
 		String repositoryName = config.getName();
 		log.info("repo name:{}", repositoryName);
-		// Projection projection = new Projection("readonly-files",
-		// projectionDir);
-
-		// projection.initialize();
 		session = repo.login("default");
 
 	}

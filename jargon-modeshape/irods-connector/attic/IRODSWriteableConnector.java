@@ -72,6 +72,7 @@ import org.slf4j.LoggerFactory;
 public class IRODSWriteableConnector extends WritableConnector implements
 		Pageable {
 
+	public static final String CONNECTOR_CONTEXT_KEY = "CONNECTOR_CONTEXT";
 	public static final String AVU_UNIT_PROP = "avuUnit";
 	public static final String AVU_VALUE_PROP = "avuValue";
 	public static final String AVU_ATTRIBUTE_PROP = "avuAttribute";
@@ -112,7 +113,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * required for this connector.
 	 */
 	private String directoryPath;
-	private File directory;
+	// private File directory;
 
 	/**
 	 * A string that is created in the
@@ -120,7 +121,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * represents the absolute path to the {@link #directory}. This path is
 	 * removed from an absolute path of a file to obtain the ID of the node.
 	 */
-	private String directoryAbsolutePath;
+	// private String directoryAbsolutePath;
 	private int directoryAbsolutePathLength;
 
 	/**
@@ -165,6 +166,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	private final boolean contentBasedSha1 = true;
 
 	private NamespaceRegistry registry;
+	private String directoryPathWithoutDelim;
 
 	/*
 	 * (non-Javadoc)
@@ -180,34 +182,14 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 		checkFieldNotNull(directoryPath, "directoryPath");
 
-		IRODSFile directoryFile;
-		try {
-			directoryFile = IRODSFileSystemSingletonWrapper.instance()
-					.getIRODSAccessObjectFactory()
-					.getIRODSFileFactory(getIrodsAccount())
-					.instanceIRODSFile(directoryPath);
-		} catch (JargonException e) {
-			log.error("error initializing JCR repository", e);
-			throw new RepositoryException("error initializing repository", e);
+		if (!directoryPath.endsWith(FILE_SEPARATOR))
+			directoryPath = directoryPath + FILE_SEPARATOR;
 
-		}
-
-		directory = (File) directoryFile;
-		if (!directory.exists() || !directory.isDirectory()) {
-			String msg = JcrI18n.fileConnectorTopLevelDirectoryMissingOrCannotBeRead
-					.text(getSourceName(), "directoryPath");
-			throw new RepositoryException(msg);
-		}
-		if (!directory.canRead() && !directory.setReadable(true)) {
-			String msg = JcrI18n.fileConnectorTopLevelDirectoryMissingOrCannotBeRead
-					.text(getSourceName(), "directoryPath");
-			throw new RepositoryException(msg);
-		}
-		directoryAbsolutePath = directory.getAbsolutePath();
-		if (!directoryAbsolutePath.endsWith(FILE_SEPARATOR))
-			directoryAbsolutePath = directoryAbsolutePath + FILE_SEPARATOR;
-		directoryAbsolutePathLength = directoryAbsolutePath.length()
+		directoryAbsolutePathLength = directoryPath.length()
 				- FILE_SEPARATOR.length(); // does NOT include the separtor
+
+		directoryPathWithoutDelim = directoryPath.substring(0,
+				directoryAbsolutePathLength);
 
 		// Initialize the filename filter ...
 		filenameFilter = new InclusionExclusionFilenameFilter();
@@ -296,20 +278,21 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			return (File) IRODSFileSystemSingletonWrapper.instance()
 					.getIRODSAccessObjectFactory()
 					.getIRODSFileFactory(getIrodsAccount())
-					.instanceIRODSFile(directoryAbsolutePath, id);
+					.instanceIRODSFile(directoryPath, id);
 		} catch (JargonException e) {
 			log.error("error getting irods file", e);
 			throw new ConnectorException(e);
 		} finally {
 			if (closeInFinally) {
+
 				try {
 					IRODSFileSystemSingletonWrapper.instance()
 							.getIRODSAccessObjectFactory()
 							.closeSessionAndEatExceptions();
 				} catch (JargonException e) {
-					// ignored
-
+					// ignore
 				}
+
 			}
 		}
 
@@ -350,8 +333,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 */
 	protected String idFor(final File file) {
 		String path = file.getAbsolutePath();
-		if (!path.startsWith(directoryAbsolutePath)) {
-			if (directory.getAbsolutePath().equals(path)) {
+		if (!path.startsWith(directoryPathWithoutDelim)) {
+			if (directoryPathWithoutDelim.equals(path)) {
 				// This is the root
 				return DELIMITER;
 			}
@@ -418,7 +401,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 							.getIRODSAccessObjectFactory(),
 					this.getIrodsAccount());
 		} catch (JargonException e) {
-			throw new ConnectorException(e);
+			throw new ConnectorException(
+					"error getting irodsAccessObjectFactory", e);
 		}
 	}
 
@@ -508,7 +492,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 						.getIRODSAccessObjectFactory()
 						.closeSessionAndEatExceptions();
 			} catch (JargonException e) {
-				// ignore here
+				//
 			}
 		}
 
@@ -663,7 +647,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 						.getIRODSAccessObjectFactory()
 						.closeSessionAndEatExceptions();
 			} catch (JargonException e) {
-				// ignored
+				//
 			}
 		}
 
@@ -709,7 +693,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 
 		StringBuilder sb = new StringBuilder();
-		sb.append(this.directoryAbsolutePath);
+		sb.append(this.directoryPath);
 		sb.append(filePath.substring(1));
 
 		String myFilePath = sb.toString();
@@ -967,6 +951,14 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 */
 	@Override
 	public void storeDocument(final Document document) {
+		log.info("storeDocument()");
+
+		if (document == null) {
+			throw new IllegalArgumentException("null document");
+		}
+
+		log.info("document:{}", document);
+
 		// Create a new directory or file described by the document ...
 		try {
 			DocumentReader reader = readDocument(document);
@@ -1032,7 +1024,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 						.getIRODSAccessObjectFactory()
 						.closeSessionAndEatExceptions();
 			} catch (JargonException e) {
-				// ignore
+				// ignored
 			}
 		}
 	}
@@ -1433,17 +1425,23 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * FIXME: shim for account, figure out auth and account handling
 	 */
 	private IRODSAccount getIrodsAccount() {
-		IRODSAccount irodsAccount;
-		try {
-			irodsAccount = IRODSAccount.instance("fedZone1", 1247, "test1",
-					"test", "", "fedZone1", "");
-			// irodsAccount = IRODSAccount.instance("localhost", 1247,
-			// "test1", "test", "", "test1", "");
-		} catch (JargonException e) {
-			throw new JargonRuntimeException("unable to create irodsAccount", e);
-		}
 
-		return irodsAccount;
+		if (this.getContext().getSecurityContext() instanceof IrodsSecurityContext) {
+
+			IrodsSecurityContext irodsContext = (IrodsSecurityContext) this
+					.getContext().getSecurityContext();
+
+			return irodsContext.getIrodsAccount();
+		} else {
+			try {
+				return IRODSAccount.instance("fedZone1", 1247, "test1", "test",
+						"", "fedZone1", "");
+			} catch (JargonException e) {
+				throw new JargonRuntimeException(
+						"unable to create irods account", e);
+			}
+
+		}
 	}
 
 }

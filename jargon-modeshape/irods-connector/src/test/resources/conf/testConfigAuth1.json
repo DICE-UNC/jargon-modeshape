@@ -1,0 +1,49 @@
+ {
+    "name" : "irodsRepo",
+    "workspaces" : {
+        "predefined" : ["otherWorkspace"],
+        "default" : "default",
+        "allowCreation" : true
+    },
+    "security" : {
+        "anonymous" : {
+            "roles" : ["readonly","readwrite","admin"],
+            "useOnFailedLogin" : false
+        },
+    "providers" : [
+        {
+            "name" : "iRODS custom provided",
+            "classname" : "org.irods.jargon.modeshape.connector.IrodsAuthenticationProvider"
+        }
+    ]
+    },
+    "storage" : {
+        "cacheConfiguration" : "conf/infinispan.xml",
+        "cacheName" : "persistentRepository",
+        "binaryStorage" : {
+            "type" : "file",
+            "directory": "target/federation_repository/binaries",
+            "minimumBinarySizeInBytes" : 0
+        }
+    },
+    "externalSources" : {
+        "irods" : {
+            "classname" : "org.irods.jargon.modeshape.connector.IRODSWriteableConnector",
+            "directoryPath" : "/fedZone1/home/test1",
+            "projections" : [
+                "default:/irodsGrid => /"
+            ],
+            "readOnly" : false,
+            "addMimeTypeMixin" : false,
+             "cacheTtlSeconds" : 0,
+            "exclusionPattern" : ".+[.]tmp$"
+        }
+    } ,
+       "query" : {
+        "enabled" : false,
+        "rebuildUponStartup" : "never"
+         },
+    
+    "node-types" : ["conf/irods.cnd"]
+         
+}

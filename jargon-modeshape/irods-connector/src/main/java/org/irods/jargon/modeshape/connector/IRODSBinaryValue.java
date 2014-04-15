@@ -10,6 +10,7 @@ import javax.jcr.RepositoryException;
 
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.JargonException;
+import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.pub.io.IRODSFileFactory;
 import org.modeshape.jcr.mimetype.MimeTypeDetector;
 import org.modeshape.jcr.value.binary.UrlBinaryValue;
@@ -32,8 +33,8 @@ public class IRODSBinaryValue extends UrlBinaryValue {
 	public static final Logger log = LoggerFactory
 			.getLogger(IRODSWriteableConnector.class);
 
-	private final ConnectorContext connectorContext;
 	private final IRODSAccount irodsAccount;
+	private final IRODSAccessObjectFactory irodsAccessObjectFactory;
 
 	/**
 	 * @param sha1
@@ -46,12 +47,12 @@ public class IRODSBinaryValue extends UrlBinaryValue {
 	public IRODSBinaryValue(final String sha1, final String sourceName,
 			final URL content, final long size, final String nameHint,
 			final MimeTypeDetector mimeTypeDetector,
-			final ConnectorContext connectorContext,
+			final IRODSAccessObjectFactory irodsAccessObjectFactory,
 			final IRODSAccount irodsAccount) {
 
 		super(sha1, sourceName, content, size, nameHint, mimeTypeDetector);
-		this.connectorContext = connectorContext;
 		this.irodsAccount = irodsAccount;
+		this.irodsAccessObjectFactory = irodsAccessObjectFactory;
 	}
 
 	/*
@@ -66,9 +67,8 @@ public class IRODSBinaryValue extends UrlBinaryValue {
 
 		try {
 
-			IRODSFileFactory irodsFileFactory = connectorContext
-					.getIrodsAccessObjectFactory().getIRODSFileFactory(
-							irodsAccount);
+			IRODSFileFactory irodsFileFactory = irodsAccessObjectFactory
+					.getIRODSFileFactory(irodsAccount);
 
 			log.info("getting input stream for id:{}", getId());
 
