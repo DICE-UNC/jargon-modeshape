@@ -112,7 +112,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * required for this connector.
 	 */
 	private String directoryPath;
-	private File directory;
 
 	/**
 	 * A string that is created in the
@@ -120,7 +119,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * represents the absolute path to the {@link #directory}. This path is
 	 * removed from an absolute path of a file to obtain the ID of the node.
 	 */
-	private String directoryAbsolutePath;
+	private String directoryPathWithTrailingSlash;
 	private int directoryAbsolutePathLength;
 
 	/**
@@ -180,33 +179,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 		checkFieldNotNull(directoryPath, "directoryPath");
 
-		IRODSFile directoryFile;
-		try {
-			directoryFile = IRODSFileSystemSingletonWrapper.instance()
-					.getIRODSAccessObjectFactory()
-					.getIRODSFileFactory(getIrodsAccount())
-					.instanceIRODSFile(directoryPath);
-		} catch (JargonException e) {
-			log.error("error initializing JCR repository", e);
-			throw new RepositoryException("error initializing repository", e);
-
-		}
-
-		directory = (File) directoryFile;
-		if (!directory.exists() || !directory.isDirectory()) {
-			String msg = JcrI18n.fileConnectorTopLevelDirectoryMissingOrCannotBeRead
-					.text(getSourceName(), "directoryPath");
-			throw new RepositoryException(msg);
-		}
-		if (!directory.canRead() && !directory.setReadable(true)) {
-			String msg = JcrI18n.fileConnectorTopLevelDirectoryMissingOrCannotBeRead
-					.text(getSourceName(), "directoryPath");
-			throw new RepositoryException(msg);
-		}
-		directoryAbsolutePath = directory.getAbsolutePath();
-		if (!directoryAbsolutePath.endsWith(FILE_SEPARATOR))
-			directoryAbsolutePath = directoryAbsolutePath + FILE_SEPARATOR;
-		directoryAbsolutePathLength = directoryAbsolutePath.length()
+		directoryPathWithTrailingSlash = directoryPath + "/";
+		directoryAbsolutePathLength = directoryPathWithTrailingSlash.length()
 				- FILE_SEPARATOR.length(); // does NOT include the separtor
 
 		// Initialize the filename filter ...
@@ -296,7 +270,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			return (File) IRODSFileSystemSingletonWrapper.instance()
 					.getIRODSAccessObjectFactory()
 					.getIRODSFileFactory(getIrodsAccount())
-					.instanceIRODSFile(directoryAbsolutePath, id);
+					.instanceIRODSFile(directoryPathWithTrailingSlash, id);
 		} catch (JargonException e) {
 			log.error("error getting irods file", e);
 			throw new ConnectorException(e);
@@ -350,8 +324,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 */
 	protected String idFor(final File file) {
 		String path = file.getAbsolutePath();
-		if (!path.startsWith(directoryAbsolutePath)) {
-			if (directory.getAbsolutePath().equals(path)) {
+		if (!path.startsWith(directoryPathWithTrailingSlash)) {
+			if (this.directoryPath.equals(path)) {
 				// This is the root
 				return DELIMITER;
 			}
@@ -709,7 +683,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 
 		StringBuilder sb = new StringBuilder();
-		sb.append(this.directoryAbsolutePath);
+		sb.append(this.directoryPathWithTrailingSlash);
 		sb.append(filePath.substring(1));
 
 		String myFilePath = sb.toString();

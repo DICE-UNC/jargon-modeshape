@@ -9,3 +9,17 @@ jcr node types: https://docs.jboss.org/author/display/MODE/Built-in+node+types
 
 json config schema: https://github.com/ModeShape/modeshape/blob/modeshape-3.7.1.Final/modeshape-jcr/src/main/resources/org/modeshape/jcr/repository-config-schema.json
 
+
+
+
+
+
+
+
+
+
+
+directory path:/fedZone1/home/test1
+directory : irods://test1@fedZone1:1247/fedZone1/home/test1
+directory absolute path : /fedZone1/home/test1/
+
