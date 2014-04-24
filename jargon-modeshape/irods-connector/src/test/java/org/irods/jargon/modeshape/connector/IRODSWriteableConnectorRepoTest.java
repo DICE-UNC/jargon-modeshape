@@ -16,6 +16,7 @@ import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
+import javax.jcr.SimpleCredentials;
 
 import junit.framework.Assert;
 
@@ -77,7 +78,7 @@ public class IRODSWriteableConnectorRepoTest {
 		engine = new ModeShapeEngine();
 		engine.start();
 		RepositoryConfiguration config = RepositoryConfiguration
-				.read("conf/testConfig1.json");
+				.read("conf/testConfigAuth1.json");
 
 		// Verify the configuration for the repository ...
 		org.modeshape.common.collection.Problems problems = config.validate();
@@ -91,7 +92,13 @@ public class IRODSWriteableConnectorRepoTest {
 
 		String repositoryName = config.getName();
 		log.info("repo name:{}", repositoryName);
-		session = repo.login("default");
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
+		SimpleCredentials simpleCredentials = new SimpleCredentials(
+				irodsAccount.getUserName(), irodsAccount.getPassword()
+						.toCharArray());
+
+		session = repo.login(simpleCredentials, "default");
 
 	}
 

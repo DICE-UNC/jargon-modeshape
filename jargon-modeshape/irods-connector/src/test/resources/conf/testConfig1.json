@@ -4,12 +4,18 @@
         "predefined" : ["otherWorkspace"],
         "default" : "default",
         "allowCreation" : true
-    },
+            },
     "security" : {
         "anonymous" : {
             "roles" : ["readonly","readwrite","admin"],
             "useOnFailedLogin" : false
+        },
+    "providers" : [
+        {
+            "name" : "iRODS custom provided",
+            "classname" : "org.irods.jargon.modeshape.connector.IrodsAuthenticationProvider"
         }
+    ]
     },
     "storage" : {
         "cacheConfiguration" : "conf/infinispan.xml",

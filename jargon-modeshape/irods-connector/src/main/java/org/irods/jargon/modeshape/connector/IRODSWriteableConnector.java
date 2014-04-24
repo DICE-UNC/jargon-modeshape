@@ -1407,17 +1407,23 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * FIXME: shim for account, figure out auth and account handling
 	 */
 	private IRODSAccount getIrodsAccount() {
-		IRODSAccount irodsAccount;
-		try {
-			irodsAccount = IRODSAccount.instance("fedZone1", 1247, "test1",
-					"test", "", "fedZone1", "");
-			// irodsAccount = IRODSAccount.instance("localhost", 1247,
-			// "test1", "test", "", "test1", "");
-		} catch (JargonException e) {
-			throw new JargonRuntimeException("unable to create irodsAccount", e);
-		}
 
-		return irodsAccount;
+		if (this.getContext().getSecurityContext() instanceof IrodsSecurityContext) {
+
+			IrodsSecurityContext irodsContext = (IrodsSecurityContext) this
+					.getContext().getSecurityContext();
+
+			return irodsContext.getIrodsAccount();
+		} else {
+			try {
+				return IRODSAccount.instance("fedZone1", 1247, "test1", "test",
+						"", "fedZone1", "");
+			} catch (JargonException e) {
+				throw new JargonRuntimeException(
+						"unable to create irods account", e);
+			}
+
+		}
 	}
 
 }
