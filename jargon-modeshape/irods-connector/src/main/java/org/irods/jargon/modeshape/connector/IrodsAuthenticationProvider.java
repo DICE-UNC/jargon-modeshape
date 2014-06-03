@@ -33,9 +33,9 @@ public class IrodsAuthenticationProvider implements AuthenticationProvider {
 	/**
 	 * TODO: where to get preset info?
 	 */
-	private final String host = "fedZone1";
+	private final String host = "localhost";
 	private final int port = 1247;
-	private final String zone = "fedZone1";
+	private final String zone = "test1";
 
 	/**
 	 * 

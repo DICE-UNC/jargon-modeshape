@@ -12,7 +12,7 @@
         },
     "providers" : [
         {
-            "name" : "iRODS custom provided",
+            "name" : "irods",
             "classname" : "org.irods.jargon.modeshape.connector.IrodsAuthenticationProvider"
         }
     ]

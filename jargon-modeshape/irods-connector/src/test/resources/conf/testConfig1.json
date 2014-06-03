@@ -29,7 +29,7 @@
     "externalSources" : {
         "irods" : {
             "classname" : "org.irods.jargon.modeshape.connector.IRODSWriteableConnector",
-            "directoryPath" : "/fedZone1/home/test1", 
+            "directoryPath" : "/test1/home/test1", 
             "projections" : [
                 "default:/irodsGrid => /"
             ],

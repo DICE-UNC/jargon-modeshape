@@ -78,7 +78,7 @@ public class IRODSWriteableConnectorRepoTest {
 		engine = new ModeShapeEngine();
 		engine.start();
 		RepositoryConfiguration config = RepositoryConfiguration
-				.read("conf/testConfigAuth1.json");
+				.read("conf/testConfig1.json");
 
 		// Verify the configuration for the repository ...
 		org.modeshape.common.collection.Problems problems = config.validate();

@@ -1415,8 +1415,19 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 			return irodsContext.getIrodsAccount();
 		} else {
-			log.error("cannot get an IrodsSecurityContext");
-			throw new JargonRuntimeException("unable to create irods account");
+
+			try {
+
+				IRODSAccount irodsAccount = IRODSAccount.instance("localhost",
+						1247, "test1", "test", "", "test1", "");
+				return irodsAccount;
+
+				// irodsAccount = IRODSAccount.instance("localhost", 1247,
+				// "test1", "test", "", "test1", "");
+			} catch (JargonException e) {
+				throw new JargonRuntimeException(
+						"unable to create irodsAccount", e);
+			}
 
 		}
 	}
