@@ -5,8 +5,10 @@ package org.irods.jargon.modeshape.connector;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -15,10 +17,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Pattern;
 
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
+import org.apache.commons.lang.StringUtils;
 
 import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
@@ -164,6 +168,10 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	private final boolean contentBasedSha1 = true;
 
 	private NamespaceRegistry registry;
+    
+    
+    private IRODSAccount irodsAccount;
+    
 
 	/*
 	 * (non-Javadoc)
@@ -1416,20 +1424,106 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			return irodsContext.getIrodsAccount();
 		} else {
 
-			try {
+//			try {
 
-				IRODSAccount irodsAccount = IRODSAccount.instance("localhost",
-						1247, "test1", "test", "", "test1", "");
-				return irodsAccount;
+//				IRODSAccount irodsAccount = IRODSAccount.instance("irods4test.irss.unc.edu",
+//						1247, "rods", "rods", "", "dvn-test", "");
+            
+                if (this.irodsAccount == null){
+                    initializeIrodsAccount();
+                }
+				return this.irodsAccount;
 
 				// irodsAccount = IRODSAccount.instance("localhost", 1247,
 				// "test1", "test", "", "test1", "");
-			} catch (JargonException e) {
-				throw new JargonRuntimeException(
-						"unable to create irodsAccount", e);
-			}
+//			} catch (JargonException e) {
+//				throw new JargonRuntimeException(
+//						"unable to create irodsAccount", e);
+//			}
 
 		}
 	}
+    
+    
+    private void initializeIrodsAccount(){
+        
+        Properties irodsConfigParams = getIRODSPropertiesFile();
+        if (!irodsConfigParams.isEmpty()){
+            log.info("IRODS account properties are loaded");
+        irodsAccount= new IRODSAccount(
+                irodsConfigParams.getProperty("host"),
+                Integer.parseInt(irodsConfigParams.getProperty("port")),
+                irodsConfigParams.getProperty("user"),
+                irodsConfigParams.getProperty("password"),
+                irodsConfigParams.getProperty("homedir"),
+                irodsConfigParams.getProperty("zone"),
+                irodsConfigParams.getProperty("resource")
+                );
+        } else {
+            log.error("irodsConfigParams is empty and failed to initialize the irodsaccount");
+            throw new RuntimeException("IRODS account was not initialized by the properties file");
+        }
+    }
+    
+    
+    
+    private Properties getIRODSPropertiesFile() {
+
+        Properties gfJvmProps = System.getProperties();
+        Properties irodslConfigProps = new Properties();
+        
+        
+        
+
+        if (gfJvmProps.containsKey("irods.config.file")) {
+            String irodsConfigFileName
+                    = gfJvmProps.getProperty("irods.config.file");
+
+            if (StringUtils.isNotBlank(irodsConfigFileName)) {
+                // load the configuration file
+                log.info("irodsConfigFileName={}", irodsConfigFileName);
+
+                InputStream is = null;
+//                File irodsConfigFile = null;
+                
+                try {
+//                    irodsConfigFile = new File(irodsConfigFileName);
+                    is = new FileInputStream(new File(irodsConfigFileName));
+                    
+                    irodslConfigProps.load(is);
+
+                    for (String key : irodslConfigProps.stringPropertyNames()) {
+                        log.debug(
+                                "key={}:value={}", new Object[]{key,
+                                    irodslConfigProps.getProperty(key)});
+                    }
+
+//
+//                } catch (FileNotFoundException ex) {
+//                    log.warn("specified config file was not found", ex);
+                } catch (IOException ex) {
+                    log.warn("IO error occurred", ex);
+                } finally {
+                    if (is != null) {
+                        try {
+                            is.close();
+                        } catch (IOException ex) {
+                            log.warn("failed to close the opened local config file", ex);
+                        }
+                    }
+                }
+
+            } else {
+                // irodsConfigFileName is null or empty
+                log.error("irodsConfigFileName is null or empty");
+            }
+        } else {
+            // no entry within jvm options
+            log.error("key: irods.config.file is not included in the JVM options");
+
+        }
+        return irodslConfigProps;
+    }
+    
 
 }
