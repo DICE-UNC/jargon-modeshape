@@ -10,7 +10,7 @@
 	<url>https://code.renci.org/gf/project/jargon</url>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<jargon.version>3.3.6-SNAPSHOT</jargon.version>
+		<jargon.version>3.3.5-SNAPSHOT</jargon.version>
 		<findbugs.version>2.5.2</findbugs.version>
 		<modeshape.version>3.7.1.Final</modeshape.version>
 	</properties>
