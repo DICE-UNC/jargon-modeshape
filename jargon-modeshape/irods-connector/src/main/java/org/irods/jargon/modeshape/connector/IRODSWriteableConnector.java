@@ -1418,8 +1418,9 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 			try {
 
-				IRODSAccount irodsAccount = IRODSAccount.instance("localhost",
-						1247, "test1", "test", "", "test1", "");
+				IRODSAccount irodsAccount = IRODSAccount.instance(
+						"consortium.local", 1247, "test1", "test", "", "test1",
+						"");
 				return irodsAccount;
 
 				// irodsAccount = IRODSAccount.instance("localhost", 1247,

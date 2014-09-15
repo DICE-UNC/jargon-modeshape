@@ -646,9 +646,8 @@ public class IRODSWriteableConnectorRepoTest {
 		}
 
 		Assert.assertNotNull("did not find AVU child node", childNode);
-		Assert.assertEquals(
-				"did not find  avu attribute property of avu child", 2,
-				foundAvu);
+		Assert.assertTrue("did not find  avu attribute property of avu child",
+				foundAvu >= 2);
 
 	}
 
