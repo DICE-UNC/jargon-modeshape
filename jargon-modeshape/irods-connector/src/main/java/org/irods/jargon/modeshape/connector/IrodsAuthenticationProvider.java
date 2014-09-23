@@ -14,7 +14,7 @@ import javax.annotation.PostConstruct;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.AuthenticationException;

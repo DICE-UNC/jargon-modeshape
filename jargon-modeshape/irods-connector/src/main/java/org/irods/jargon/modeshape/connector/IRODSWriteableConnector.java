@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
