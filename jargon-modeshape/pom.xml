@@ -10,9 +10,11 @@
 	<url>https://code.renci.org/gf/project/jargon</url>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<jargon.version>3.3.3-SNAPSHOT</jargon.version>
+		<jargon.version>4.0.3-SNAPSHOT</jargon.version>
+		<!-- jargon.version>3.3.5-SNAPSHOT</jargon.version -->
 		<findbugs.version>2.5.2</findbugs.version>
-		<modeshape.version>3.7.1.Final</modeshape.version>
+		<modeshape.version>3.8.0.Final</modeshape.version>
+		<!-- modeshape.version>3.7.1.Final</modeshape.version -->
 	</properties>
 	<issueManagement>
 		<system>GitHub</system>
@@ -195,12 +197,14 @@
 			<dependency>
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-api</artifactId>
-				<version>1.5.10</version>
+				<!-- version>1.5.10</version -->
+				<version>1.6.6</version>
 			</dependency>
 			<dependency>
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-log4j12</artifactId>
-				<version>1.5.10</version>
+				<!-- version>1.5.10</version -->
+				<version>1.6.6</version>
 			</dependency>
 			<!-- Import the ModeShape BOM for embedded usage. This adds to the "dependenciesManagement" 
 				section defaults for all of the modules we might need, but we still have 
@@ -229,7 +233,7 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
-			<version>1.5.10</version>
+			<!-- version>1.5.10</version -->
 			<scope>test</scope>
 		</dependency>
 		<dependency>

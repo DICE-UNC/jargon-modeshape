@@ -3,17 +3,25 @@
  */
 package org.irods.jargon.modeshape.connector;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
+import java.util.Properties;
+import javax.annotation.PostConstruct;
 
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
+import org.apache.commons.lang3.StringUtils;
 
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.AuthenticationException;
 import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.core.exception.JargonRuntimeException;
 import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
+import static org.irods.jargon.modeshape.connector.IRODSWriteableConnector.log;
 import org.modeshape.jcr.ExecutionContext;
 import org.modeshape.jcr.security.AuthenticationProvider;
 import org.slf4j.Logger;
@@ -33,16 +41,28 @@ public class IrodsAuthenticationProvider implements AuthenticationProvider {
 	/**
 	 * TODO: where to get preset info?
 	 */
-	private final String host = "fedZone1";
-	private final int port = 1247;
-	private final String zone = "fedZone1";
-
+	private String host;
+	private int port;
+	private String zone;
+    
 	/**
 	 * 
 	 */
 	public IrodsAuthenticationProvider() {
+        
+        
+        
+        Properties irodsConfigParams = getIRODSPropertiesFile();
+        if (!irodsConfigParams.isEmpty()){
+            host = irodsConfigParams.getProperty("host");
+            port = Integer.parseInt(irodsConfigParams.getProperty("port"));
+            zone = irodsConfigParams.getProperty("zone");
+        } else {
+            log.error("irodsConfigParams is empty and failed to initialize the irodsaccount");
+            throw new RuntimeException("IRODS account was not initialized by the properties file");
+        }
+        
 	}
-
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -108,5 +128,64 @@ public class IrodsAuthenticationProvider implements AuthenticationProvider {
 		}
 
 	}
+    
+    
+    
+    private Properties getIRODSPropertiesFile() {
+
+        Properties gfJvmProps = System.getProperties();
+        Properties irodslConfigProps = new Properties();
+
+        if (gfJvmProps.containsKey("irods.config.file")) {
+            String irodsConfigFileName
+                    = gfJvmProps.getProperty("irods.config.file");
+
+            if (StringUtils.isNotBlank(irodsConfigFileName)) {
+                // load the configuration file
+                log.info("irodsConfigFileName={}", irodsConfigFileName);
+
+                InputStream is = null;
+//                File irodsConfigFile = null;
+                
+                try {
+//                    irodsConfigFile = new File(irodsConfigFileName);
+                    is = new FileInputStream(new File(irodsConfigFileName));
+                    
+                    irodslConfigProps.load(is);
+
+                    for (String key : irodslConfigProps.stringPropertyNames()) {
+                        log.debug(
+                                "key={}:value={}", new Object[]{key,
+                                    irodslConfigProps.getProperty(key)});
+                    }
+
+//
+//                } catch (FileNotFoundException ex) {
+//                    log.warn("specified config file was not found", ex);
+                } catch (IOException ex) {
+                    log.warn("IO error occurred", ex);
+                } finally {
+                    if (is != null) {
+                        try {
+                            is.close();
+                        } catch (IOException ex) {
+                            log.warn("failed to close the opened local config file", ex);
+                        }
+                    }
+                }
+
+            } else {
+                // irodsConfigFileName is null or empty
+                log.error("irodsConfigFileName is null or empty");
+            }
+        } else {
+            // no entry within jvm options
+            log.error("irods.config.file is not included in the JVM options");
+
+        }
+        return irodslConfigProps;
+    }
+    
+    
 
 }
