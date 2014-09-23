@@ -1098,13 +1098,16 @@ public class IRODSWriteableConnector extends WritableConnector implements
 				log.info("not root....");
 
 				String parentId = reader.getParentIds().get(0);
-				log.info("parent id:{}", parentId);
+                log.info("parentIds;size={}", reader.getParentIds().size());
+                log.info("parentIds:{}", StringUtils.join(reader.getParentIds(), "|"));
+				log.info("1st parent id:{}", parentId);
 				File parent = file.getParentFile();
 				log.info("parent:{}", parent);
 				String newParentId = idFor(parent);
 				log.info("new parentId:{}", newParentId);
 
 				if (!parentId.equals(newParentId)) {
+                    log.info("parentId differs from newParentId");
 					// The node has a new parent (via the 'update' method),
 					// meaning
 					// it was moved ...
@@ -1148,6 +1151,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 					// Set the id to the new location ...
 					id = idFor(newFile);
 				} else {
+                    log.info("parentId is the same as newParentId");
 					// It is the same parent as before ...
 					if (!parent.exists()) {
 						parent.mkdirs(); // in case they were removed since we
