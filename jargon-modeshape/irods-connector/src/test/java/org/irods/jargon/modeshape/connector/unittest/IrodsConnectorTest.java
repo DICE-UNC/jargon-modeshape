@@ -14,8 +14,11 @@ import org.modeshape.jcr.api.Session;
 import org.modeshape.jcr.api.federation.FederationManager;
 
 /**
- * @author Mike Conway - DICE
- *
+ * @author Mike Conway - DICE ref
+ *         https://github.com/ModeShape/modeshape/blob/master
+ *         /connectors/modeshape
+ *         -connector-git/src/test/java/org/modeshape/connector
+ *         /git/GitConnectorTest.java
  */
 public class IrodsConnectorTest extends MultiUseAbstractTest {
 

@@ -11,8 +11,10 @@ import org.modeshape.jcr.spi.federation.WritableConnector;
 import org.modeshape.jcr.value.Name;
 
 /**
- * @author Mike Conway - DICE
- *
+ * @author Mike Conway - DICE ref
+ *         https://github.com/ModeShape/modeshape/tree/master
+ *         /connectors/modeshape
+ *         -connector-git/src/main/java/org/modeshape/connector/git
  */
 public class IrodsWriteableConnector extends WritableConnector {
 
