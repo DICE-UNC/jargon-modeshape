@@ -43,13 +43,13 @@ import org.modeshape.jcr.JcrI18n;
 import org.modeshape.jcr.JcrLexicon;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 import org.modeshape.jcr.cache.DocumentStoreException;
-import org.modeshape.jcr.federation.spi.ConnectorException;
-import org.modeshape.jcr.federation.spi.DocumentChanges;
-import org.modeshape.jcr.federation.spi.DocumentReader;
-import org.modeshape.jcr.federation.spi.DocumentWriter;
-import org.modeshape.jcr.federation.spi.PageKey;
-import org.modeshape.jcr.federation.spi.Pageable;
-import org.modeshape.jcr.federation.spi.WritableConnector;
+import org.modeshape.jcr.spi.federation.ConnectorException;
+import org.modeshape.jcr.spi.federation.DocumentChanges;
+import org.modeshape.jcr.spi.federation.DocumentReader;
+import org.modeshape.jcr.spi.federation.DocumentWriter;
+import org.modeshape.jcr.spi.federation.PageKey;
+import org.modeshape.jcr.spi.federation.Pageable;
+import org.modeshape.jcr.spi.federation.WritableConnector;
 import org.modeshape.jcr.value.BinaryValue;
 import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.Property;
@@ -72,7 +72,6 @@ import org.slf4j.LoggerFactory;
 public class IRODSWriteableConnector extends WritableConnector implements
 		Pageable {
 
-	public static final String CONNECTOR_CONTEXT_KEY = "CONNECTOR_CONTEXT";
 	public static final String AVU_UNIT_PROP = "avuUnit";
 	public static final String AVU_VALUE_PROP = "avuValue";
 	public static final String AVU_ATTRIBUTE_PROP = "avuAttribute";
@@ -113,7 +112,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * required for this connector.
 	 */
 	private String directoryPath;
-	// private File directory;
 
 	/**
 	 * A string that is created in the
@@ -121,7 +119,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 * represents the absolute path to the {@link #directory}. This path is
 	 * removed from an absolute path of a file to obtain the ID of the node.
 	 */
-	// private String directoryAbsolutePath;
+	private String directoryPathWithTrailingSlash;
 	private int directoryAbsolutePathLength;
 
 	/**
@@ -166,7 +164,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	private final boolean contentBasedSha1 = true;
 
 	private NamespaceRegistry registry;
-	private String directoryPathWithoutDelim;
 
 	/*
 	 * (non-Javadoc)
@@ -182,14 +179,9 @@ public class IRODSWriteableConnector extends WritableConnector implements
 
 		checkFieldNotNull(directoryPath, "directoryPath");
 
-		if (!directoryPath.endsWith(FILE_SEPARATOR))
-			directoryPath = directoryPath + FILE_SEPARATOR;
-
-		directoryAbsolutePathLength = directoryPath.length()
+		directoryPathWithTrailingSlash = directoryPath + "/";
+		directoryAbsolutePathLength = directoryPathWithTrailingSlash.length()
 				- FILE_SEPARATOR.length(); // does NOT include the separtor
-
-		directoryPathWithoutDelim = directoryPath.substring(0,
-				directoryAbsolutePathLength);
 
 		// Initialize the filename filter ...
 		filenameFilter = new InclusionExclusionFilenameFilter();
@@ -278,21 +270,20 @@ public class IRODSWriteableConnector extends WritableConnector implements
 			return (File) IRODSFileSystemSingletonWrapper.instance()
 					.getIRODSAccessObjectFactory()
 					.getIRODSFileFactory(getIrodsAccount())
-					.instanceIRODSFile(directoryPath, id);
+					.instanceIRODSFile(directoryPathWithTrailingSlash, id);
 		} catch (JargonException e) {
 			log.error("error getting irods file", e);
 			throw new ConnectorException(e);
 		} finally {
 			if (closeInFinally) {
-
 				try {
 					IRODSFileSystemSingletonWrapper.instance()
 							.getIRODSAccessObjectFactory()
 							.closeSessionAndEatExceptions();
 				} catch (JargonException e) {
-					// ignore
-				}
+					// ignored
 
+				}
 			}
 		}
 
@@ -333,8 +324,8 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 */
 	protected String idFor(final File file) {
 		String path = file.getAbsolutePath();
-		if (!path.startsWith(directoryPathWithoutDelim)) {
-			if (directoryPathWithoutDelim.equals(path)) {
+		if (!path.startsWith(directoryPathWithTrailingSlash)) {
+			if (this.directoryPath.equals(path)) {
 				// This is the root
 				return DELIMITER;
 			}
@@ -401,8 +392,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 							.getIRODSAccessObjectFactory(),
 					this.getIrodsAccount());
 		} catch (JargonException e) {
-			throw new ConnectorException(
-					"error getting irodsAccessObjectFactory", e);
+			throw new ConnectorException(e);
 		}
 	}
 
@@ -492,7 +482,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 						.getIRODSAccessObjectFactory()
 						.closeSessionAndEatExceptions();
 			} catch (JargonException e) {
-				//
+				// ignore here
 			}
 		}
 
@@ -647,7 +637,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 						.getIRODSAccessObjectFactory()
 						.closeSessionAndEatExceptions();
 			} catch (JargonException e) {
-				//
+				// ignored
 			}
 		}
 
@@ -693,7 +683,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 		}
 
 		StringBuilder sb = new StringBuilder();
-		sb.append(this.directoryPath);
+		sb.append(this.directoryPathWithTrailingSlash);
 		sb.append(filePath.substring(1));
 
 		String myFilePath = sb.toString();
@@ -951,14 +941,6 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 */
 	@Override
 	public void storeDocument(final Document document) {
-		log.info("storeDocument()");
-
-		if (document == null) {
-			throw new IllegalArgumentException("null document");
-		}
-
-		log.info("document:{}", document);
-
 		// Create a new directory or file described by the document ...
 		try {
 			DocumentReader reader = readDocument(document);
@@ -1024,7 +1006,7 @@ public class IRODSWriteableConnector extends WritableConnector implements
 						.getIRODSAccessObjectFactory()
 						.closeSessionAndEatExceptions();
 			} catch (JargonException e) {
-				// ignored
+				// ignore
 			}
 		}
 	}
@@ -1426,19 +1408,26 @@ public class IRODSWriteableConnector extends WritableConnector implements
 	 */
 	private IRODSAccount getIrodsAccount() {
 
+		log.info("getIrodsAccount()");
 		if (this.getContext().getSecurityContext() instanceof IrodsSecurityContext) {
-
 			IrodsSecurityContext irodsContext = (IrodsSecurityContext) this
 					.getContext().getSecurityContext();
 
 			return irodsContext.getIrodsAccount();
 		} else {
+
 			try {
-				return IRODSAccount.instance("fedZone1", 1247, "test1", "test",
-						"", "fedZone1", "");
+
+				IRODSAccount irodsAccount = IRODSAccount.instance(
+						"consortium.local", 1247, "test1", "test", "", "test1",
+						"");
+				return irodsAccount;
+
+				// irodsAccount = IRODSAccount.instance("localhost", 1247,
+				// "test1", "test", "", "test1", "");
 			} catch (JargonException e) {
 				throw new JargonRuntimeException(
-						"unable to create irods account", e);
+						"unable to create irodsAccount", e);
 			}
 
 		}
