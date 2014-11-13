@@ -12,8 +12,7 @@
         },
     "providers" : [
         {
-            "name" : "iRODS custom provided",
-            "classname" : "org.irods.jargon.modeshape.connector.IrodsAuthenticationProvider"
+           
         }
     ]
     },
@@ -29,7 +28,7 @@
     "externalSources" : {
         "irods" : {
             "classname" : "org.irods.jargon.modeshape.connector.IrodsWriteableConnector",
-            "directoryPath" : "/test1/home/test1", 
+            "directoryPath" : "/test1/home/test1/modeshaperoot", 
             "projections" : [
                 "default:/irodsGrid => /"
             ],

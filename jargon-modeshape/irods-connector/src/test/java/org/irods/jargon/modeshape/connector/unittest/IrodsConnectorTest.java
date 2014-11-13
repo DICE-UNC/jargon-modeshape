@@ -19,6 +19,12 @@ import org.modeshape.jcr.api.federation.FederationManager;
  *         /connectors/modeshape
  *         -connector-git/src/test/java/org/modeshape/connector
  *         /git/GitConnectorTest.java
+ * 
+ * 
+ *         parent class source at
+ *         https://github.com/ModeShape/modeshape/blob/master
+ *         /modeshape-jcr/src/test
+ *         /java/org/modeshape/jcr/MultiUseAbstractTest.java
  */
 public class IrodsConnectorTest extends MultiUseAbstractTest {
 

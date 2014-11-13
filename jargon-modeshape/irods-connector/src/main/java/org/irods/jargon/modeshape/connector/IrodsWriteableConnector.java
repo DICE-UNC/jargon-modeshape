@@ -9,6 +9,8 @@ import org.infinispan.schematic.document.Document;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.WritableConnector;
 import org.modeshape.jcr.value.Name;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Mike Conway - DICE ref
@@ -17,6 +19,9 @@ import org.modeshape.jcr.value.Name;
  *         -connector-git/src/main/java/org/modeshape/connector/git
  */
 public class IrodsWriteableConnector extends WritableConnector {
+
+	public static final Logger log = LoggerFactory
+			.getLogger(IrodsWriteableConnector.class);
 
 	@Override
 	public Document getDocumentById(String arg0) {
