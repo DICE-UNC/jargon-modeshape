@@ -4,9 +4,15 @@
 package org.irods.jargon.modeshape.connector;
 
 import java.io.File;
+import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.Collection;
 
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.RepositoryException;
+
 import org.infinispan.schematic.document.Document;
+import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.WritableConnector;
 import org.modeshape.jcr.value.Name;
@@ -21,15 +27,15 @@ import org.slf4j.LoggerFactory;
  */
 public class IrodsWriteableConnector extends WritableConnector {
 
-	public static final Logger log = LoggerFactory
-			.getLogger(IrodsWriteableConnector.class);
-
 	/**
 	 * The string path for a {@link File} object that represents the top-level
 	 * directory accessed by this connector. This is set via reflection and is
 	 * required for this connector.
 	 */
 	private String directoryPath;
+
+	public static final Logger log = LoggerFactory
+			.getLogger(IrodsWriteableConnector.class);
 
 	/**
 	 * A boolean flag that specifies whether this connector should add the
@@ -58,9 +64,31 @@ public class IrodsWriteableConnector extends WritableConnector {
 	 */
 	private boolean readOnly;
 
+	/**
+	 * The {@link FilenameFilter} implementation that is instantiated in the
+	 * {@link #initialize(NamespaceRegistry, NodeTypeManager)} method.
+	 */
+	private InclusionExclusionFilenameFilter filenameFilter;
+
+	/**
+	 * Created during init phase, this will handle all the node type detection
+	 * and path munging for ids
+	 */
+	private PathUtilities pathUtilities;
+
 	@Override
-	public Document getDocumentById(String arg0) {
+	public Document getDocumentById(String id) {
+
+		log.info("getDocumentById()");
+
+		if (id == null || id.isEmpty()) {
+			throw new IllegalArgumentException("null or empty id");
+		}
+
+		log.info("id:{}", id);
+
 		return null;
+
 	}
 
 	@Override
@@ -97,21 +125,6 @@ public class IrodsWriteableConnector extends WritableConnector {
 	public void updateDocument(DocumentChanges arg0) {
 		// TODO Auto-generated method stub
 
-	}
-
-	/**
-	 * @return the directoryPath
-	 */
-	public String getDirectoryPath() {
-		return directoryPath;
-	}
-
-	/**
-	 * @param directoryPath
-	 *            the directoryPath to set
-	 */
-	public void setDirectoryPath(String directoryPath) {
-		this.directoryPath = directoryPath;
 	}
 
 	/**
@@ -172,6 +185,47 @@ public class IrodsWriteableConnector extends WritableConnector {
 	 */
 	public void setReadOnly(boolean readOnly) {
 		this.readOnly = readOnly;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.modeshape.jcr.spi.federation.Connector#initialize(javax.jcr.
+	 * NamespaceRegistry, org.modeshape.jcr.api.nodetype.NodeTypeManager)
+	 */
+	@Override
+	public void initialize(NamespaceRegistry registry,
+			NodeTypeManager nodeTypeManager) throws RepositoryException,
+			IOException {
+		super.initialize(registry, nodeTypeManager);
+
+		checkFieldNotNull(directoryPath, "directoryPath");
+
+		pathUtilities = new PathUtilities(directoryPath);
+
+		// Initialize the filename filter ...
+		filenameFilter = new InclusionExclusionFilenameFilter();
+		if (exclusionPattern != null)
+			filenameFilter.setExclusionPattern(exclusionPattern);
+		if (inclusionPattern != null)
+			filenameFilter.setInclusionPattern(inclusionPattern);
+
+		log.info("initialized");
+	}
+
+	/**
+	 * @return the directoryPath
+	 */
+	public String getDirectoryPath() {
+		return directoryPath;
+	}
+
+	/**
+	 * @param directoryPath
+	 *            the directoryPath to set
+	 */
+	public void setDirectoryPath(String directoryPath) {
+		this.directoryPath = directoryPath;
 	}
 
 }
