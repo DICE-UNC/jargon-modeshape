@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- used by maven to populate src/test/resources/testing.properties, configuring 
+	the behavior of the JUnit tests -->
+<profile>
+	<id>modeshape</id>
+	<properties>
+		<test.modeshape.skip.dir.build.if.root.exists>true
+		</test.modeshape.skip.dir.build.if.root.exists>
+	</properties>
+</profile>

@@ -97,8 +97,8 @@
 								<echo file="${basedir}/src/test/resources/testing.properties"
 									append="true">
 									test.data.directory=${jargon.test.data.directory}
-									test.modeshape.root=${test.modeshape.root}
 									test.modeshape.skip.dir.build.if.root.exists=${test.modeshape.skip.dir.build.if.root.exists}
+									test.modeshape.large.test=${test.modeshape.large.test}
 									test.irods.admin=${jargon.test.irods.admin}
 									test.irods.admin.password=${jargon.test.irods.admin.password}
 									test.irods.user=${jargon.test.irods.user}

@@ -8,6 +8,7 @@ import javax.jcr.Node;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.modeshape.jcr.MultiUseAbstractTest;
 import org.modeshape.jcr.RepositoryConfiguration;
 import org.modeshape.jcr.api.Session;
@@ -29,9 +30,12 @@ import org.modeshape.jcr.api.federation.FederationManager;
 public class IrodsConnectorTest extends MultiUseAbstractTest {
 
 	private Node testRoot;
+	private static ConnectorIrodsSetupUtilities connectorIrodsSetupUtilities;
 
 	@BeforeClass
 	public static void beforeAll() throws Exception {
+		connectorIrodsSetupUtilities = new ConnectorIrodsSetupUtilities();
+		connectorIrodsSetupUtilities.init();
 		RepositoryConfiguration config = RepositoryConfiguration
 				.read("config/testConfig1.json");
 		startRepository(config);
@@ -54,6 +58,11 @@ public class IrodsConnectorTest extends MultiUseAbstractTest {
 	@Before
 	public void before() throws Exception {
 		testRoot = getSession().getRootNode().getNode("repos");
+	}
+
+	@Test
+	public void testHello() {
+		System.out.println("hello");
 	}
 
 }
