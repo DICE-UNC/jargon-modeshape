@@ -1,3 +1,21 @@
  {
-    "name" : "irods"
+    "name" : "irods",
+     "workspaces" : {
+        "predefined" : ["otherWorkspace"],
+        "default" : "default",
+        "allowCreation" : true,
+    },
+     "externalSources" : {
+        "irods-modeshape" : {
+            "classname" : "org.irods.jargon.modeshape.connector.IrodsWriteableConnector",
+            "directoryPath" : "/test1/home/test1/jargon-scratch/ModeshapeConnectorRoot/ModeshapeConnectorRoot", 
+            "projections" : [
+                "default:/irodsGrid => /"
+            ],
+            "readOnly" : false,
+            "addMimeTypeMixin" : false,
+             "cacheTtlSeconds" : 0,
+            "exclusionPattern" : ".+[.]tmp$"
+        }
+    }
 }

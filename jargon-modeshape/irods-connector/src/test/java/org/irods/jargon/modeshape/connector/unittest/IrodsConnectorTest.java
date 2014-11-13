@@ -9,7 +9,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.modeshape.jcr.MultiUseAbstractTest;
 import org.modeshape.jcr.RepositoryConfiguration;
 import org.modeshape.jcr.api.Session;
 import org.modeshape.jcr.api.federation.FederationManager;
@@ -47,13 +46,39 @@ public class IrodsConnectorTest extends ModeShapeMultiUseTest {
 
 		FederationManager fedMgr = session.getWorkspace()
 				.getFederationManager();
-		fedMgr.createProjection(testRoot.getPath(), "local-git-repo", "/",
-				"irods-modeshape");
+
+		/**
+		 * from
+		 * http://docs.jboss.org/modeshape/4.0.0.Final/api/org/modeshape/jcr
+		 * /api/federation/FederationManager.html
+		 * 
+		 * Creates an external projection by linking an internal node with an
+		 * external node, from a given source using an optional alias. If this
+		 * is the first node linked to the existing node, it will convert the
+		 * existing node to a federated node.
+		 * 
+		 * Parameters:
+		 * 
+		 * absNodePath - a non-null string representing the absolute path to an
+		 * existing internal node.
+		 * 
+		 * sourceName - a non-null string representing the name of an external
+		 * source, configured in the repository.
+		 * 
+		 * externalPath - a non-null string representing a path in the external
+		 * source, where at which there is an external node that will be linked.
+		 * 
+		 * alias - an optional string representing the name under which the
+		 * alias should be created. If not present, the externalPath will be
+		 * used as the name of the alias.
+		 */
+
+		fedMgr.createProjection(testRoot.getPath(), "irods-modeshape", "/", "");
 	}
 
 	@AfterClass
 	public static final void afterAll() throws Exception {
-		MultiUseAbstractTest.afterAll();
+		ModeShapeMultiUseTest.afterAll();
 	}
 
 	@Before
