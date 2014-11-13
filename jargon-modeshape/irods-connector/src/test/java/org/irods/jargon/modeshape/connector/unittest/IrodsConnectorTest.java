@@ -13,6 +13,7 @@ import org.modeshape.jcr.MultiUseAbstractTest;
 import org.modeshape.jcr.RepositoryConfiguration;
 import org.modeshape.jcr.api.Session;
 import org.modeshape.jcr.api.federation.FederationManager;
+import org.modeshape.test.ModeShapeMultiUseTest;
 
 /**
  * @author Mike Conway - DICE ref
@@ -27,7 +28,7 @@ import org.modeshape.jcr.api.federation.FederationManager;
  *         /modeshape-jcr/src/test
  *         /java/org/modeshape/jcr/MultiUseAbstractTest.java
  */
-public class IrodsConnectorTest extends MultiUseAbstractTest {
+public class IrodsConnectorTest extends ModeShapeMultiUseTest {
 
 	private Node testRoot;
 	private static ConnectorIrodsSetupUtilities connectorIrodsSetupUtilities;
@@ -37,7 +38,7 @@ public class IrodsConnectorTest extends MultiUseAbstractTest {
 		connectorIrodsSetupUtilities = new ConnectorIrodsSetupUtilities();
 		connectorIrodsSetupUtilities.init();
 		RepositoryConfiguration config = RepositoryConfiguration
-				.read("config/testConfig1.json");
+				.read("conf/testConfig1.json");
 		startRepository(config);
 
 		Session session = getSession();

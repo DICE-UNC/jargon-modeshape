@@ -1,0 +1,38 @@
+ {
+    "name" : "irodsRepo",
+    "workspaces" : {
+        "predefined" : ["ws1"],
+        "default" : "default",
+        "allowCreation" : true
+            },
+    "security" : {
+        "anonymous" : {
+            "roles" : ["readonly"],
+            "useOnFailedLogin" : true
+        },
+    "storage" : {
+        "cacheConfiguration" : "conf/infinispan.xml",
+        "cacheName" : "persistentRepository",
+        "binaryStorage" : {
+            "type" : "file",
+            "directory": "target/federation_repository/binaries",
+            "minimumBinarySizeInBytes" : 0
+        }
+    },
+    "externalSources" : {
+        "irods" : {
+            "classname" : "org.irods.jargon.modeshape.connector.IrodsWriteableConnector",
+            "directoryPath" : "/test1/home/test1/jargon-scratch/ModeshapeConnectorRoot/ModeshapeConnectorRoot", 
+            "projections" : [
+                "default:/irodsGrid => /"
+            ],
+            "readOnly" : false,
+            "addMimeTypeMixin" : false,
+             "cacheTtlSeconds" : 0,
+            "exclusionPattern" : ".+[.]tmp$"
+        }
+    },
+    "node-types" : ["conf/irods.cnd"]
+    }
+         
+}
