@@ -5,6 +5,8 @@ package org.irods.jargon.modeshape.connector.unittest;
 
 import javax.jcr.Node;
 
+import junit.framework.Assert;
+
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -87,8 +89,8 @@ public class IrodsConnectorTest extends ModeShapeMultiUseTest {
 	}
 
 	@Test
-	public void testHello() {
-		System.out.println("hello");
+	public void testGetRootDocumentById() {
+		Assert.fail("implement me!");
 	}
 
 }
