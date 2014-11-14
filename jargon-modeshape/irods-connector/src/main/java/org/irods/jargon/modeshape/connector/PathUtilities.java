@@ -19,9 +19,6 @@ import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 public class PathUtilities {
 
 	public static final String DELIMITER = "/";
-	public static final String NT_FOLDER = "nt:folder";
-	public static final String NT_FILE = "nt:file";
-	public static final String NT_RESOURCE = "nt:resource";
 	public static final String MIX_MIME_TYPE = "mix:mimeType";
 	public static final String JCR_PRIMARY_TYPE = "jcr:primaryType";
 	public static final String JCR_DATA = "jcr:data";
@@ -31,13 +28,8 @@ public class PathUtilities {
 	public static final String JCR_CREATED_BY = "jcr:createdBy";
 	public static final String JCR_LAST_MODIFIED = "jcr:lastModified";
 	public static final String JCR_LAST_MODIFIED_BY = "jcr:lastModified";
-	public static final String JCR_CONTENT = "jcr:content";
-	public static final String JCR_IRODS_AVU = "irods:avu";
-	public static final String JCR_CONTENT_SUFFIX = DELIMITER + JCR_CONTENT;
-	public static final int JCR_CONTENT_SUFFIX_LENGTH = JCR_CONTENT_SUFFIX
-			.length();
-	public static final String JCR_AVU_SUFFIX = DELIMITER + JCR_IRODS_AVU;
-	public static final int JCR_AVU_SUFFIX_LENGTH = JCR_AVU_SUFFIX.length();
+	public static final String NT_FOLDER = "nt:folder";
+	public static final String NT_FILE = "nt:file";
 
 	/**
 	 * The string path for a {@link File} object that represents the top-level
@@ -76,6 +68,21 @@ public class PathUtilities {
 		this.directoryPathWithTrailingSlash = directoryPath + "/";
 		this.directoryAbsolutePathLength = directoryPathWithTrailingSlash
 				.length() - DELIMITER.length();
+	}
+
+	/**
+	 * Given an id, determine the JCR node type
+	 * 
+	 * @param id
+	 *            <code>String</code> with the id
+	 * @return {@link IrodsNodeTypes} enum value
+	 */
+	public IrodsNodeTypes getNodeTypeForId(final String id) {
+		if (id == null || id.isEmpty()) {
+			throw new IllegalArgumentException("unknown node type");
+		}
+
+		return IrodsNodeTypes.determineNodeTypeFromId(id);
 	}
 
 }

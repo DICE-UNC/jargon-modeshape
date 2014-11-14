@@ -87,6 +87,9 @@ public class IrodsWriteableConnector extends WritableConnector {
 
 		log.info("id:{}", id);
 
+		IrodsNodeTypes irodsNodeType = pathUtilities.getNodeTypeForId(id);
+		log.info("node type:{}", irodsNodeType);
+
 		return null;
 
 	}
@@ -123,7 +126,6 @@ public class IrodsWriteableConnector extends WritableConnector {
 
 	@Override
 	public void updateDocument(DocumentChanges arg0) {
-		// TODO Auto-generated method stub
 
 	}
 
