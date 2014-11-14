@@ -203,14 +203,14 @@ public class IrodsWriteableConnector extends WritableConnector {
 
 		checkFieldNotNull(directoryPath, "directoryPath");
 
-		pathUtilities = new PathUtilities(directoryPath);
-
 		// Initialize the filename filter ...
 		filenameFilter = new InclusionExclusionFilenameFilter();
 		if (exclusionPattern != null)
 			filenameFilter.setExclusionPattern(exclusionPattern);
 		if (inclusionPattern != null)
 			filenameFilter.setInclusionPattern(inclusionPattern);
+
+		this.pathUtilities = new PathUtilities(directoryPath, filenameFilter);
 
 		log.info("initialized");
 	}

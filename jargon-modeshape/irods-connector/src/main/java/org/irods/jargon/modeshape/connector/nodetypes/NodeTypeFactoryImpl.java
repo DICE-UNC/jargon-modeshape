@@ -5,6 +5,7 @@ package org.irods.jargon.modeshape.connector.nodetypes;
 
 import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
+import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.service.AbstractJargonService;
 import org.irods.jargon.modeshape.connector.IrodsNodeTypes;
@@ -56,8 +57,7 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 	 * (java.lang.String)
 	 */
 	@Override
-	public Document instanceForId(final String id)
-			throws UnknownNodeTypeException {
+	public Document instanceForId(final String id) throws JargonException {
 		log.info("instanceForId()");
 
 		if (id == null || id.isEmpty()) {
@@ -82,21 +82,18 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 
 		IrodsNodeTypes irodsNodeType = pathUtilities.getNodeTypeForId(id);
 		log.info("resolved node type:{}", irodsNodeType);
-		if (irodsNodeType == IrodsNodeTypes.UNKNOWN) {
-			throw new UnknownNodeTypeException("cannot process this node type");
-		}
 
 		AbstractNodeTypeCreator abstractNodeTypeCreator = null;
 		switch (irodsNodeType) {
 		case ROOT_NODE:
 			break;
 		case CONTENT_NODE:
-			return new ContentNodeCreator(irodsAccessObjectFactory,
-					irodsAccount, pathUtilities);
+			break;
 		case AVU_NODE:
 			break;
 		default:
-
+			return new FileNodeCreator(irodsAccessObjectFactory, irodsAccount,
+					pathUtilities);
 		}
 
 		return abstractNodeTypeCreator;

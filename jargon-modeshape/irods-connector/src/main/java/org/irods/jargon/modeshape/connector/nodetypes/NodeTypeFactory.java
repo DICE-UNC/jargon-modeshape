@@ -1,6 +1,7 @@
 package org.irods.jargon.modeshape.connector.nodetypes;
 
 import org.infinispan.schematic.document.Document;
+import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.modeshape.connector.IrodsNodeTypes;
 import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
 
@@ -19,8 +20,9 @@ public interface NodeTypeFactory {
 	 * @param id
 	 *            <code>String</code> with the document id
 	 * @return {@link Document}
+	 * @throws JargonException
 	 */
 	public abstract Document instanceForId(String id)
-			throws UnknownNodeTypeException;
+			throws UnknownNodeTypeException, JargonException;
 
 }
