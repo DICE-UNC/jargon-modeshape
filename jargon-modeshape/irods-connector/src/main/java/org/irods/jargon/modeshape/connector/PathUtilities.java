@@ -9,6 +9,7 @@ import javax.jcr.NamespaceRegistry;
 
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
+import org.modeshape.jcr.cache.DocumentStoreException;
 
 /**
  * Utilities for understanding and formatting document ids between ModeShape and
@@ -33,7 +34,12 @@ public class PathUtilities {
 	public static final String NT_FILE = "nt:file";
 	public static final String JCR_CONTENT = "jcr:content";
 	public static final String JCR_CONTENT_SUFFIX = DELIMITER + JCR_CONTENT;
+	public static final String JCR_IRODS_IRODSOBJECT = "irods:irodsobject";
+	public static final String JCR_IRODS_AVU_PROP = "irods:avu";
 	public static final int DELIMITER_LENGTH = DELIMITER.length();
+	public static final String JCR_IRODS_AVU = "irods:avu";
+	public static final String JCR_AVU_SUFFIX = DELIMITER + JCR_IRODS_AVU;
+	public static final int JCR_AVU_SUFFIX_LENGTH = JCR_AVU_SUFFIX.length();
 
 	/**
 	 * The string path for a {@link File} object that represents the top-level
@@ -198,6 +204,74 @@ public class PathUtilities {
 		} else {
 			return id;
 		}
+	}
+
+	/**
+	 * From an id for a file, return the id that has the appropriate
+	 * JCR_CONTENT_SUFFIX for a file
+	 * 
+	 * @param id
+	 *            <code>String</code> with the modeshape id
+	 * @return <code>String</code> with the id formatted with the
+	 *         JCR_CONTENT_SUFFIX
+	 */
+	public static String formatChildIdForDocument(final String id) {
+		if (id == null) {
+			throw new IllegalArgumentException("null id");
+		}
+
+		return isRoot(id) ? JCR_CONTENT_SUFFIX : id + JCR_CONTENT_SUFFIX;
+	}
+
+	/**
+	 * Utility method for determining if the node identifier is the identifier
+	 * of the root node in this external source. Subclasses may override this
+	 * method to change the format of the identifiers, but in that case should
+	 * also override the {@link #fileFor(String)},
+	 * {@link #isContentNode(String)}, and {@link #idFor(File)} methods.
+	 * 
+	 * @param id
+	 *            the identifier; may not be null
+	 * @return true if the identifier is for the root of this source, or false
+	 *         otherwise
+	 * @see #isContentNode(String)
+	 * @see #fileFor(String)
+	 * @see #idFor(File)
+	 */
+	public static boolean isRoot(final String id) {
+		if (id == null) {
+			throw new IllegalArgumentException("null id");
+		}
+		return DELIMITER.equals(id);
+	}
+
+	/**
+	 * Utility method for determining the node identifier for the supplied file.
+	 * Subclasses may override this method to change the format of the
+	 * identifiers, but in that case should also override the
+	 * {@link #fileFor(String)}, {@link #isContentNode(String)}, and
+	 * {@link #isRoot(String)} methods.
+	 * 
+	 * @param file
+	 *            the file; may not be null
+	 * @return the node identifier; never null
+	 * @see #isRoot(String)
+	 * @see #isContentNode(String)
+	 * @see #fileFor(String)
+	 */
+	public String idFor(final File file) {
+		String path = file.getAbsolutePath();
+		if (!path.startsWith(getDirectoryPathWithTrailingSlash())) {
+			if (getDirectoryPath().equals(path)) {
+				// This is the root
+				return PathUtilities.DELIMITER;
+			}
+
+			throw new DocumentStoreException(path,
+					"given path is not within the scope of this connector");
+		}
+		String id = path.substring(getDirectoryAbsolutePathLength());
+		return id;
 	}
 
 }

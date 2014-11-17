@@ -12,10 +12,14 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 
 import org.infinispan.schematic.document.Document;
+import org.irods.jargon.core.pub.IRODSFileSystem;
+import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
+import org.modeshape.jcr.spi.federation.DocumentWriter;
 import org.modeshape.jcr.spi.federation.WritableConnector;
 import org.modeshape.jcr.value.Name;
+import org.modeshape.jcr.value.ValueFactories;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +66,13 @@ public class IrodsWriteableConnector extends WritableConnector {
 	 * Configuration flag that can cause this connector to operare in read-only
 	 * mode if desired
 	 */
-	private boolean readOnly;
+	private boolean readOnly = false;
+
+	/**
+	 * Configuration flag that can cause AVU nodes to be added when creating or
+	 * reading documents
+	 */
+	private boolean addAvus = false;
 
 	/**
 	 * The {@link FilenameFilter} implementation that is instantiated in the
@@ -79,18 +89,22 @@ public class IrodsWriteableConnector extends WritableConnector {
 	@Override
 	public Document getDocumentById(String id) {
 
-		log.info("getDocumentById()");
+		try {
+			log.info("getDocumentById()");
 
-		if (id == null || id.isEmpty()) {
-			throw new IllegalArgumentException("null or empty id");
+			if (id == null || id.isEmpty()) {
+				throw new IllegalArgumentException("null or empty id");
+			}
+
+			log.info("id:{}", id);
+
+			IrodsNodeTypes irodsNodeType = pathUtilities.getNodeTypeForId(id);
+			log.info("node type:{}", irodsNodeType);
+
+			return null;
+		} finally {
+			this.instanceIrodsFileSystem().closeAndEatExceptions();
 		}
-
-		log.info("id:{}", id);
-
-		IrodsNodeTypes irodsNodeType = pathUtilities.getNodeTypeForId(id);
-		log.info("node type:{}", irodsNodeType);
-
-		return null;
 
 	}
 
@@ -199,20 +213,25 @@ public class IrodsWriteableConnector extends WritableConnector {
 	public void initialize(NamespaceRegistry registry,
 			NodeTypeManager nodeTypeManager) throws RepositoryException,
 			IOException {
-		super.initialize(registry, nodeTypeManager);
+		try {
+			super.initialize(registry, nodeTypeManager);
 
-		checkFieldNotNull(directoryPath, "directoryPath");
+			checkFieldNotNull(directoryPath, "directoryPath");
 
-		// Initialize the filename filter ...
-		filenameFilter = new InclusionExclusionFilenameFilter();
-		if (exclusionPattern != null)
-			filenameFilter.setExclusionPattern(exclusionPattern);
-		if (inclusionPattern != null)
-			filenameFilter.setInclusionPattern(inclusionPattern);
+			// Initialize the filename filter ...
+			filenameFilter = new InclusionExclusionFilenameFilter();
+			if (exclusionPattern != null)
+				filenameFilter.setExclusionPattern(exclusionPattern);
+			if (inclusionPattern != null)
+				filenameFilter.setInclusionPattern(inclusionPattern);
 
-		this.pathUtilities = new PathUtilities(directoryPath, filenameFilter);
+			this.pathUtilities = new PathUtilities(directoryPath,
+					filenameFilter);
 
-		log.info("initialized");
+			log.info("initialized");
+		} finally {
+			this.instanceIrodsFileSystem().closeAndEatExceptions();
+		}
 	}
 
 	/**
@@ -228,6 +247,58 @@ public class IrodsWriteableConnector extends WritableConnector {
 	 */
 	public void setDirectoryPath(String directoryPath) {
 		this.directoryPath = directoryPath;
+	}
+
+	public PathUtilities getPathUtilities() {
+		return pathUtilities;
+	}
+
+	/**
+	 * Wraps the <code>newDocument()</code> method to allow factories to create
+	 * new documents
+	 * 
+	 * @param id
+	 *            <code>String</code> with the document id
+	 * @return {@link DocumentWriter}
+	 */
+	public DocumentWriter createNewDocumentForId(final String id) {
+		try {
+			log.info("createNewDocumentForId()");
+			if (id == null || id.isEmpty()) {
+				throw new IllegalArgumentException("null or empty id");
+			}
+
+			return this.newDocument(id);
+		} finally {
+			this.instanceIrodsFileSystem().closeAndEatExceptions();
+		}
+	}
+
+	/**
+	 * Allow objects to get a handle to factories for various types
+	 * 
+	 * @return {@link ValueFactories} as obtained in the
+	 *         <code>factories()</code> method of a connector
+	 */
+	public ValueFactories obtainHandleToFactories() {
+		return this.factories();
+	}
+
+	public boolean isAddAvus() {
+		return addAvus;
+	}
+
+	public void setAddAvus(boolean addAvus) {
+		this.addAvus = addAvus;
+	}
+
+	/**
+	 * Get a reference to the IRODSFileSystem that will be a singleton
+	 * 
+	 * @return
+	 */
+	public IRODSFileSystem instanceIrodsFileSystem() {
+		return IRODSFileSystemSingletonWrapper.instance();
 	}
 
 }

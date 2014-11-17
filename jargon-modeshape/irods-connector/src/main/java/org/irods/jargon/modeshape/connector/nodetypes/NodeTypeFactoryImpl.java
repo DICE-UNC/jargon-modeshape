@@ -9,6 +9,7 @@ import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.service.AbstractJargonService;
 import org.irods.jargon.modeshape.connector.IrodsNodeTypes;
+import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
 import org.slf4j.Logger;
@@ -23,7 +24,7 @@ import org.slf4j.LoggerFactory;
 public class NodeTypeFactoryImpl extends AbstractJargonService implements
 		NodeTypeFactory {
 
-	private final PathUtilities pathUtilities;
+	private final IrodsWriteableConnector irodsWriteableConnector;
 
 	public static final Logger log = LoggerFactory
 			.getLogger(NodeTypeFactoryImpl.class);
@@ -40,13 +41,14 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 	 */
 	public NodeTypeFactoryImpl(
 			IRODSAccessObjectFactory irodsAccessObjectFactory,
-			IRODSAccount irodsAccount, final PathUtilities pathUtilities) {
+			IRODSAccount irodsAccount,
+			final IrodsWriteableConnector irodsWriteableConnector) {
 		super(irodsAccessObjectFactory, irodsAccount);
 
-		if (pathUtilities == null) {
-			throw new IllegalArgumentException("null pathUtilities");
+		if (irodsWriteableConnector == null) {
+			throw new IllegalArgumentException("null irodsWriteableConnector");
 		}
-		this.pathUtilities = pathUtilities;
+		this.irodsWriteableConnector = irodsWriteableConnector;
 	}
 
 	/*
@@ -80,7 +82,8 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 			throw new IllegalArgumentException("id is null or missing");
 		}
 
-		IrodsNodeTypes irodsNodeType = pathUtilities.getNodeTypeForId(id);
+		IrodsNodeTypes irodsNodeType = irodsWriteableConnector
+				.getPathUtilities().getNodeTypeForId(id);
 		log.info("resolved node type:{}", irodsNodeType);
 
 		AbstractNodeTypeCreator abstractNodeTypeCreator = null;
@@ -93,7 +96,7 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 			break;
 		default:
 			return new FileNodeCreator(irodsAccessObjectFactory, irodsAccount,
-					pathUtilities);
+					irodsWriteableConnector);
 		}
 
 		return abstractNodeTypeCreator;
