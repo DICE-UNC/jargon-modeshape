@@ -7,6 +7,7 @@ import java.io.File;
 
 import javax.jcr.NamespaceRegistry;
 
+import org.irods.jargon.core.pub.io.IRODSFile;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 
 /**
@@ -159,16 +160,44 @@ public class PathUtilities {
 	 * <code>true</code> if this file should be excluded
 	 * 
 	 * @param file
-	 *            {@link File} representing the underlying iRODS data
+	 *            {@link IRODSFile} representing the underlying iRODS data
 	 * @return <code>boolean</code> if this file should be excluded
 	 */
-	public boolean isExcluded(final File file) {
+	public boolean isExcluded(final IRODSFile file) {
+
+		if (!file.exists()) {
+			return true;
+		}
+
 		if (this.getInclusionExclusionFilenameFilter().accept(
-				file.getParentFile(), file.getName())
-				&& file.exists()) {
+				file.getParentFile(), file.getName())) {
 			return false;
 		} else {
+
 			return true;
 		}
 	}
+
+	/**
+	 * Given an id for a node as given by Modeshape, strip a trailing delim if
+	 * present, otherwise return as is
+	 * 
+	 * @param id
+	 *            <code>String</code> with an id that may contain a trailing
+	 *            delimiter
+	 * @return <code>String</code> with the id stripped of any trailing
+	 *         delimiter
+	 */
+	public static String stripTrailingDelimFromIdIfPresent(final String id) {
+		if (id == null) {
+			throw new IllegalArgumentException("Null id");
+		}
+
+		if (id.endsWith(DELIMITER)) {
+			return id.substring(0, id.length() - DELIMITER.length());
+		} else {
+			return id;
+		}
+	}
+
 }
