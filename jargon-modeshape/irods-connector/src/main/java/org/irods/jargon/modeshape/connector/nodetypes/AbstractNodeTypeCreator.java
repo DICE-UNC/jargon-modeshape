@@ -27,7 +27,7 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	public static final Logger log = LoggerFactory
 			.getLogger(AbstractNodeTypeCreator.class);
 
-	private IrodsWriteableConnector connector;
+	private final IrodsWriteableConnector connector;
 
 	/**
 	 * Constructor for factory to create a specific node type
@@ -55,10 +55,12 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 * 
 	 * @param id
 	 *            <code>String</code> with the document id
+	 * @param offset
+	 *            <code>int</code> with an optional offset for pagable nodes
 	 * @return {@link Document}
 	 * @throws JargonException
 	 */
-	public abstract Document instanceForId(final String id)
+	public abstract Document instanceForId(final String id, final int offset)
 			throws JargonException;
 
 	/**

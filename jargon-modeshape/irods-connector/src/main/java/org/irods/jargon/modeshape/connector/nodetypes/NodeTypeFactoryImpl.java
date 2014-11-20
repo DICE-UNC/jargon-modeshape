@@ -56,10 +56,11 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 	 * 
 	 * @see
 	 * org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactory#instanceForId
-	 * (java.lang.String)
+	 * (java.lang.String, int)
 	 */
 	@Override
-	public Document instanceForId(final String id) throws JargonException {
+	public Document instanceForId(final String id, final int offset)
+			throws JargonException {
 		log.info("instanceForId()");
 
 		if (id == null || id.isEmpty()) {
@@ -69,7 +70,7 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 		log.info("getting creator for node type based on id..");
 		AbstractNodeTypeCreator creator = instanceNodeTypeCreatorForId(id);
 		log.info("got creator, get instance of document...");
-		return creator.instanceForId(id);
+		return creator.instanceForId(id, offset);
 
 	}
 

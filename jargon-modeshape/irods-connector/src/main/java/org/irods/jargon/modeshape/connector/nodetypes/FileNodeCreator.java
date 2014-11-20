@@ -10,9 +10,12 @@ import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.FileNotFoundException;
 import org.irods.jargon.core.exception.JargonException;
+import org.irods.jargon.core.pub.CollectionAO;
 import org.irods.jargon.core.pub.DataObjectAO;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
+import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
 import org.irods.jargon.core.pub.io.IRODSFile;
+import org.irods.jargon.core.query.JargonQueryException;
 import org.irods.jargon.core.query.MetaDataAndDomainData;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
@@ -46,15 +49,17 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	 * 
 	 * @see
 	 * org.irods.jargon.modeshape.connector.nodetypes.AbstractNodeTypeCreator
-	 * #instanceForId(java.lang.String)
+	 * #instanceForId(java.lang.String, int)
 	 */
 	@Override
-	public Document instanceForId(String id) throws JargonException {
+	public Document instanceForId(final String id, final int offset)
+			throws JargonException {
 		log.info("instanceForId()");
 		if (id == null || id.isEmpty()) {
 			throw new IllegalArgumentException("null or empty id");
 		}
 		log.info("id:{}", id);
+		log.info("offset:{}", offset);
 
 		IRODSFile file = fileFor(id);
 		if (this.getPathUtilities().isExcluded(file)) {
@@ -66,13 +71,67 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		if (file.isFile()) {
 			return instanceForIdAsFile(id, file);
 		} else {
-			return instanceForIdAsCollection(id, file);
+			return instanceForIdAsCollection(id, file, offset);
 		}
 
 	}
 
-	private Document instanceForIdAsCollection(String id, IRODSFile file) {
-		return null;
+	private Document instanceForIdAsCollection(final String id,
+			final IRODSFile file, final int offset) {
+		log.info("instanceForIdAsCollection()");
+		DocumentWriter writer = newDocument(id);
+		writer.setPrimaryType(PathUtilities.NT_FOLDER);
+		writer.addMixinType(PathUtilities.JCR_IRODS_IRODSOBJECT);
+		writer.addProperty(PathUtilities.JCR_CREATED, factories()
+				.getDateFactory().create(file.lastModified()));
+		writer.addProperty(PathUtilities.JCR_CREATED_BY, null); // ignored
+
+		log.info("adding AVU children for the collection");
+		addAvuChildrenForCollection(file.getAbsolutePath(), id, writer);
+		log.info("AVU children added");
+
+		File[] children = file.listFiles(this.getPathUtilities()
+				.getInclusionExclusionFilenameFilter());
+		long totalChildren = 0;
+		int nextOffset = 0;
+		log.info("parent is:{}", file.getAbsolutePath());
+		for (int i = 0; i < children.length; i++) {
+			File child = children[i];
+			// Only include as a child if we can access and read the file.
+			// Permissions might prevent us from
+			// reading the file, and the file might not exist if it is a broken
+			// symlink (see MODE-1768 for details).
+			if (child.exists() && child.canRead()
+					&& (child.isFile() || child.isDirectory())) {
+				// we need to count the total accessible children
+				totalChildren++;
+				// only add a child if it's in the current page
+				if (i >= offset
+						&& i < offset + IrodsWriteableConnector.PAGE_SIZE) {
+					// We use identifiers that contain the file/directory name
+					// ...
+
+					String childName = child.getName();
+					String childId = PathUtilities.isRoot(id) ? PathUtilities.DELIMITER
+							+ childName
+							: id + PathUtilities.DELIMITER + childName;
+
+					writer.addChild(childId, childName);
+
+					log.info("added child directory with name:{}", childName);
+
+				}
+				nextOffset = i + 1;
+			}
+		}
+
+		// if there are still accessible children add the next page
+		if (nextOffset < totalChildren) {
+			writer.addPage(id, nextOffset, IrodsWriteableConnector.PAGE_SIZE,
+					totalChildren);
+		}
+
+		return writer.document();
 	}
 
 	private Document instanceForIdAsFile(String id, IRODSFile file) {
@@ -181,6 +240,56 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			log.error("jargon exception retrieving avus", e);
 			throw new DocumentStoreException(
 					"jargon exception retrieving avus", e);
+		}
+	}
+
+	/**
+	 * For a given collection, create a set of child documents of type irods:avu
+	 * that represents the AVU metadata
+	 * 
+	 * @param path
+	 *            <code>String</code> with the path to the iRODS collection
+	 * @param writer
+	 *            {@link DocumentWriter} for the parent collection
+	 */
+	private void addAvuChildrenForCollection(final String path,
+			final String id, final DocumentWriter writer) {
+
+		assert path != null && !path.isEmpty();
+		List<MetaDataAndDomainData> metadatas;
+		try {
+
+			File fileForProps;
+
+			fileForProps = (File) IRODSFileSystemSingletonWrapper.instance()
+					.getIRODSAccessObjectFactory()
+					.getIRODSFileFactory(this.getIrodsAccount())
+					.instanceIRODSFile(path);
+
+			log.info("file abs path to search for collection AVUs:{}",
+					fileForProps.getAbsolutePath());
+
+			CollectionAO collectionAO = IRODSFileSystemSingletonWrapper
+					.instance().getIRODSAccessObjectFactory()
+					.getCollectionAO(getIrodsAccount());
+
+			metadatas = collectionAO.findMetadataValuesForCollection(
+					fileForProps.getAbsolutePath(), 0);
+
+			addChildrenForEachAvu(writer, metadatas, fileForProps, id);
+
+		} catch (FileNotFoundException e) {
+			log.error("fnf retrieving avus", e);
+			throw new DocumentStoreException(
+					"file not found for retrieving avus", e);
+		} catch (JargonException e) {
+			log.error("jargon exception retrieving avus", e);
+			throw new DocumentStoreException(
+					"jargon exception retrieving avus", e);
+		} catch (JargonQueryException e) {
+			log.error("jargon query exception retrieving avus", e);
+			throw new DocumentStoreException(
+					"jargon query exception retrieving avus", e);
 		}
 	}
 

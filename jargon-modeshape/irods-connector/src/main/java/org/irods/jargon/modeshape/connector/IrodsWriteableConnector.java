@@ -12,11 +12,20 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 
 import org.infinispan.schematic.document.Document;
+import org.irods.jargon.core.connection.IRODSAccount;
+import org.irods.jargon.core.exception.JargonException;
+import org.irods.jargon.core.exception.JargonRuntimeException;
 import org.irods.jargon.core.pub.IRODSFileSystem;
 import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
+import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
+import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactory;
+import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactoryImpl;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
+import org.modeshape.jcr.cache.DocumentStoreException;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
+import org.modeshape.jcr.spi.federation.PageKey;
+import org.modeshape.jcr.spi.federation.Pageable;
 import org.modeshape.jcr.spi.federation.WritableConnector;
 import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.ValueFactories;
@@ -29,7 +38,8 @@ import org.slf4j.LoggerFactory;
  *         /connectors/modeshape
  *         -connector-git/src/main/java/org/modeshape/connector/git
  */
-public class IrodsWriteableConnector extends WritableConnector {
+public class IrodsWriteableConnector extends WritableConnector implements
+		Pageable {
 
 	/**
 	 * The string path for a {@link File} object that represents the top-level
@@ -86,6 +96,18 @@ public class IrodsWriteableConnector extends WritableConnector {
 	 */
 	private PathUtilities pathUtilities;
 
+	/**
+	 * Created during the init phase, this factory will produce node creators
+	 * based on the JCR types in the given ids
+	 */
+
+	private NodeTypeFactory nodeTypeFactory;
+
+	/**
+	 * The maximum number of children a folder will expose at any given time.
+	 */
+	public static final int PAGE_SIZE = 5000;
+
 	@Override
 	public Document getDocumentById(String id) {
 
@@ -98,10 +120,17 @@ public class IrodsWriteableConnector extends WritableConnector {
 
 			log.info("id:{}", id);
 
-			IrodsNodeTypes irodsNodeType = pathUtilities.getNodeTypeForId(id);
-			log.info("node type:{}", irodsNodeType);
+			try {
+				return nodeTypeFactory.instanceForId(id, 0).getDocument(id);
+			} catch (UnknownNodeTypeException e) {
+				log.error("unknown node type for id:{}", id, e);
+				throw new DocumentStoreException(id, e);
+			} catch (JargonException e) {
+				log.error("jargon exception getting  node type for id:{}", id,
+						e);
+				throw new DocumentStoreException(id, e);
+			}
 
-			return null;
 		} finally {
 			this.instanceIrodsFileSystem().closeAndEatExceptions();
 		}
@@ -228,9 +257,37 @@ public class IrodsWriteableConnector extends WritableConnector {
 			this.pathUtilities = new PathUtilities(directoryPath,
 					filenameFilter);
 
+			try {
+				this.nodeTypeFactory = new NodeTypeFactoryImpl(this
+						.instanceIrodsFileSystem()
+						.getIRODSAccessObjectFactory(), getIrodsAccount(), this);
+			} catch (JargonException e) {
+				log.error("error creating NodeTypeFactory", e);
+				throw new RepositoryException(
+						"jargon error creating factory for creating nodes", e);
+			}
+
 			log.info("initialized");
 		} finally {
 			this.instanceIrodsFileSystem().closeAndEatExceptions();
+		}
+	}
+
+	/**
+	 * FIXME: shim for authentication
+	 * 
+	 * @return
+	 */
+	private IRODSAccount getIrodsAccount() {
+		try {
+
+			IRODSAccount irodsAccount = IRODSAccount.instance(
+					"fedzone1.irods.org", 1247, "fedZone1", "test", "",
+					"test1", "");
+			return irodsAccount;
+
+		} catch (JargonException e) {
+			throw new JargonRuntimeException("unable to create irodsAccount", e);
 		}
 	}
 
@@ -299,6 +356,19 @@ public class IrodsWriteableConnector extends WritableConnector {
 	 */
 	public IRODSFileSystem instanceIrodsFileSystem() {
 		return IRODSFileSystemSingletonWrapper.instance();
+	}
+
+	@Override
+	public Document getChildren(PageKey pageKey) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/**
+	 * @return the nodeTypeFactory
+	 */
+	public NodeTypeFactory getNodeTypeFactory() {
+		return nodeTypeFactory;
 	}
 
 }

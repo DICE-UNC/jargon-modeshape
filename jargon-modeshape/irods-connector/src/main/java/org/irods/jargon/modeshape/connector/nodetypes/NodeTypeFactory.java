@@ -19,10 +19,13 @@ public interface NodeTypeFactory {
 	 * 
 	 * @param id
 	 *            <code>String</code> with the document id
+	 * @param offset
+	 *            <code>int</code> with an optional offset for any paging of
+	 *            child nodes. 0 if not used.
 	 * @return {@link Document}
 	 * @throws JargonException
 	 */
-	public abstract Document instanceForId(String id)
+	public abstract Document instanceForId(final String id, final int offset)
 			throws UnknownNodeTypeException, JargonException;
 
 }
