@@ -142,6 +142,13 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.spi.federation.Connector#getDocumentId(java.lang.String
+	 * )
+	 */
 	@Override
 	public String getDocumentId(final String path) {
 
@@ -303,8 +310,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		try {
 
 			IRODSAccount irodsAccount = IRODSAccount.instance(
-					"fedzone1.irods.org", 1247, "fedZone1", "test", "",
-					"test1", "");
+					"fedzone1.irods.org", 1247, "test1", "test", "",
+					"fedZone1", "");
 			return irodsAccount;
 
 		} catch (JargonException e) {

@@ -109,7 +109,7 @@ public class PathUtilities {
 	 * @return {@link IrodsNodeTypes} enum value
 	 */
 	public IrodsNodeTypes getNodeTypeForId(final String id) {
-		if (id == null || id.isEmpty()) {
+		if (id == null) {
 			throw new IllegalArgumentException("unknown node type");
 		}
 

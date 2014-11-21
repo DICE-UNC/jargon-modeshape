@@ -12,7 +12,7 @@ package org.irods.jargon.modeshape.connector;
 public enum IrodsNodeTypes {
 
 	UNKNOWN("UNKNOWN"), ROOT_NODE(PathUtilities.DELIMITER), CONTENT_NODE(
-			"nt:resource"), AVU_NODE("irods:avu");
+			"nt:resource"), AVU_NODE("irods:avu"), FILE_NODE("");
 
 	private String nodeTypeIdSuffix;
 
@@ -34,7 +34,7 @@ public enum IrodsNodeTypes {
 	 * @return
 	 */
 	public static IrodsNodeTypes determineNodeTypeFromId(final String id) {
-		if (PathUtilities.DELIMITER.equals(id)) {
+		if (PathUtilities.DELIMITER.equals(id) || id.isEmpty()) {
 			return ROOT_NODE;
 		} else if (id.endsWith(CONTENT_NODE.nodeTypeIdSuffix)) {
 			return CONTENT_NODE;
@@ -42,7 +42,7 @@ public enum IrodsNodeTypes {
 			return AVU_NODE;
 		}
 
-		return UNKNOWN;
+		return FILE_NODE;
 	}
 
 	/**
