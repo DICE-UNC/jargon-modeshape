@@ -8,8 +8,11 @@ import java.io.File;
 import javax.jcr.NamespaceRegistry;
 
 import org.irods.jargon.core.pub.io.IRODSFile;
+import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeAndId;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 import org.modeshape.jcr.cache.DocumentStoreException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utilities for understanding and formatting document ids between ModeShape and
@@ -40,6 +43,9 @@ public class PathUtilities {
 	public static final String JCR_IRODS_AVU = "irods:avu";
 	public static final String JCR_AVU_SUFFIX = DELIMITER + JCR_IRODS_AVU;
 	public static final int JCR_AVU_SUFFIX_LENGTH = JCR_AVU_SUFFIX.length();
+	public static final int JCR_CONTENT_SUFFIX_LENGTH = JCR_CONTENT_SUFFIX
+			.length();
+	private static final String AVU_ID = "/avuId";
 
 	/**
 	 * The string path for a {@link File} object that represents the top-level
@@ -62,6 +68,9 @@ public class PathUtilities {
 	private final int directoryAbsolutePathLength;
 
 	private final InclusionExclusionFilenameFilter inclusionExclusionFilenameFilter;
+
+	public static final Logger log = LoggerFactory
+			.getLogger(PathUtilities.class);
 
 	/**
 	 * Constructor takes the absolute path to the iRODS directory in the json
@@ -272,6 +281,46 @@ public class PathUtilities {
 		}
 		String id = path.substring(getDirectoryAbsolutePathLength());
 		return id;
+	}
+
+	/**
+	 * Get an object that has the node type and parsed id (without suffixes)
+	 * 
+	 * @param id
+	 *            <code>String</code> ModeShape id
+	 * @return {@link NodeTypeAndId}
+	 */
+	public NodeTypeAndId stripSuffixFromId(final String id) {
+		log.info("stripSuffixFromId()");
+		if (id == null || id.isEmpty()) {
+			throw new IllegalArgumentException("null or empty id");
+		}
+
+		String myId = id;
+
+		if (myId.endsWith(DELIMITER)) {
+			myId = id.substring(0, id.length() - DELIMITER.length());
+		}
+
+		IrodsNodeTypes nodeType = this.getNodeTypeForId(myId);
+
+		switch (nodeType) {
+		case CONTENT_NODE:
+			myId = myId.substring(0, myId.length() - JCR_CONTENT_SUFFIX_LENGTH);
+			break;
+		case AVU_NODE:
+			int idxOfAttr = myId.indexOf(AVU_ID);
+			myId = myId.substring(0, idxOfAttr);
+			break;
+		default:
+			// myId is already set
+		}
+
+		NodeTypeAndId nodeTypeAndId = new NodeTypeAndId();
+		nodeTypeAndId.setIrodsNodeType(nodeType);
+		nodeTypeAndId.setId(myId);
+		log.info("nodeTypeAndId determined:{}", nodeTypeAndId);
+		return nodeTypeAndId;
 	}
 
 }

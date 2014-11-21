@@ -47,8 +47,9 @@ public class NodeTypeFactoryImplTest {
 		Mockito.when(mockFile.getAbsolutePath()).thenReturn(
 				TEST_ROOT_DIR + "/" + testIdNoDelim);
 		Mockito.when(
-				irodsFileFactory.instanceIRODSFile(TEST_ROOT_DIR + "/",
-						testIdNoDelim)).thenReturn(mockFile);
+				irodsFileFactory
+						.instanceIRODSFile(TEST_ROOT_DIR, testIdNoDelim))
+				.thenReturn(mockFile);
 
 		Mockito.when(irodsAccessObjectFactory.getIRODSFileFactory(irodsAccount))
 				.thenReturn(irodsFileFactory);
@@ -93,10 +94,14 @@ public class NodeTypeFactoryImplTest {
 		IRODSAccount irodsAccount = IRODSAccount.instance("host", 1247, "user",
 				"password", "", "zone", "");
 
+		InclusionExclusionFilenameFilter filter = Mockito
+				.mock(InclusionExclusionFilenameFilter.class);
+
 		IRODSFileFactory irodsFileFactory = Mockito
 				.mock(IRODSFileFactory.class);
 		IRODSFile mockFile = Mockito.mock(IRODSFile.class);
 		File parentFile = Mockito.mock(File.class);
+		File[] children = new File[0];
 		Mockito.when(parentFile.getAbsolutePath()).thenReturn(TEST_ROOT_DIR);
 		Mockito.when(mockFile.getParentFile()).thenReturn(parentFile);
 		Mockito.when(mockFile.getName()).thenReturn(testIdNoDelim);
@@ -105,15 +110,15 @@ public class NodeTypeFactoryImplTest {
 		Mockito.when(mockFile.lastModified()).thenReturn(0L);
 		Mockito.when(mockFile.getAbsolutePath()).thenReturn(
 				TEST_ROOT_DIR + "/" + testIdNoDelim);
+		Mockito.when(mockFile.listFiles(filter)).thenReturn(children);
 		Mockito.when(
-				irodsFileFactory.instanceIRODSFile(TEST_ROOT_DIR + "/",
-						testIdNoDelim)).thenReturn(mockFile);
+				irodsFileFactory
+						.instanceIRODSFile(TEST_ROOT_DIR, testIdNoDelim))
+				.thenReturn(mockFile);
 
 		Mockito.when(irodsAccessObjectFactory.getIRODSFileFactory(irodsAccount))
 				.thenReturn(irodsFileFactory);
 
-		InclusionExclusionFilenameFilter filter = Mockito
-				.mock(InclusionExclusionFilenameFilter.class);
 		Mockito.when(filter.accept(parentFile, testIdNoDelim)).thenReturn(true);
 		PathUtilities pathUtilities = new PathUtilities(TEST_ROOT_DIR, filter);
 

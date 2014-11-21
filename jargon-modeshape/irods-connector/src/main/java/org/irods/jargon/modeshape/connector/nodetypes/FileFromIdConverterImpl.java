@@ -14,21 +14,21 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Facility to transliate modeshape ids to iRODS files
- *
+ * 
  * @author Mike Conway - DICE
- *
+ * 
  */
-public class FileFromIdCoverterImpl extends AbstractJargonService implements
+public class FileFromIdConverterImpl extends AbstractJargonService implements
 		FileFromIdConverter {
 
 	public static final Logger log = LoggerFactory
-			.getLogger(FileFromIdCoverterImpl.class);
+			.getLogger(FileFromIdConverterImpl.class);
 
-	private PathUtilities pathUtilities;
+	private final PathUtilities pathUtilities;
 
 	/**
 	 * Constructor with prereqs
-	 *
+	 * 
 	 * @param irodsAccessObjectFactory
 	 *            {@link IRODSAccessObjectFactory}
 	 * @param irodsAccount
@@ -36,7 +36,7 @@ public class FileFromIdCoverterImpl extends AbstractJargonService implements
 	 * @param pathUtilities
 	 *            {@link PathUtilities}
 	 */
-	public FileFromIdCoverterImpl(
+	public FileFromIdConverterImpl(
 			final IRODSAccessObjectFactory irodsAccessObjectFactory,
 			final IRODSAccount irodsAccount, final PathUtilities pathUtilities) {
 		super(irodsAccessObjectFactory, irodsAccount);
@@ -64,7 +64,9 @@ public class FileFromIdCoverterImpl extends AbstractJargonService implements
 
 		log.info("id:{}", id);
 
-		String strippedId = PathUtilities.stripTrailingDelimFromIdIfPresent(id);
+		NodeTypeAndId nodeTypeAndId = this.pathUtilities.stripSuffixFromId(id);
+
+		String strippedId = nodeTypeAndId.getId();
 		String parentPath = pathUtilities.getDirectoryPath();
 
 		log.info("getting file for parent path:{}", parentPath);

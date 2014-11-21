@@ -17,7 +17,10 @@ import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.core.exception.JargonRuntimeException;
 import org.irods.jargon.core.pub.IRODSFileSystem;
 import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
+import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
+import org.irods.jargon.modeshape.connector.nodetypes.FileFromIdConverter;
+import org.irods.jargon.modeshape.connector.nodetypes.FileFromIdConverterImpl;
 import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactory;
 import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactoryImpl;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
@@ -103,6 +106,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 	private NodeTypeFactory nodeTypeFactory;
 
+	private IRODSFileSystem irodsFileSystem;
+
 	/**
 	 * The maximum number of children a folder will expose at any given time.
 	 */
@@ -132,14 +137,28 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			}
 
 		} finally {
-			this.instanceIrodsFileSystem().closeAndEatExceptions();
+			this.getIrodsFileSystem().closeAndEatExceptions();
 		}
 
 	}
 
 	@Override
-	public String getDocumentId(String arg0) {
-		return null;
+	public String getDocumentId(final String path) {
+
+		// this connector treats the ID as the path
+		try {
+			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
+					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
+					this.getIrodsAccount(), this.pathUtilities);
+
+			IRODSFile irodsFile = fileFromIdConverter.fileFor(path);
+			return irodsFile.exists() ? path : null;
+
+		} catch (JargonException e) {
+			log.error("jargon exception getting document id", e);
+			throw new DocumentStoreException(path, e);
+		}
+
 	}
 
 	@Override
@@ -245,6 +264,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		try {
 			super.initialize(registry, nodeTypeManager);
 
+			this.irodsFileSystem = IRODSFileSystemSingletonWrapper.instance();
+
 			checkFieldNotNull(directoryPath, "directoryPath");
 
 			// Initialize the filename filter ...
@@ -259,8 +280,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 			try {
 				this.nodeTypeFactory = new NodeTypeFactoryImpl(this
-						.instanceIrodsFileSystem()
-						.getIRODSAccessObjectFactory(), getIrodsAccount(), this);
+						.getIrodsFileSystem().getIRODSAccessObjectFactory(),
+						getIrodsAccount(), this);
 			} catch (JargonException e) {
 				log.error("error creating NodeTypeFactory", e);
 				throw new RepositoryException(
@@ -269,7 +290,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 			log.info("initialized");
 		} finally {
-			this.instanceIrodsFileSystem().closeAndEatExceptions();
+			this.getIrodsFileSystem().closeAndEatExceptions();
 		}
 	}
 
@@ -282,7 +303,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		try {
 
 			IRODSAccount irodsAccount = IRODSAccount.instance(
-					"consortium.local", 1247, "test1", "test", "", "test1", "");
+					"fedzone1.irods.org", 1247, "fedZone1", "test", "",
+					"test1", "");
 			return irodsAccount;
 
 		} catch (JargonException e) {
@@ -326,7 +348,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 			return this.newDocument(id);
 		} finally {
-			this.instanceIrodsFileSystem().closeAndEatExceptions();
+			this.getIrodsFileSystem().closeAndEatExceptions();
 		}
 	}
 
@@ -349,12 +371,16 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	}
 
 	/**
-	 * Get a reference to the IRODSFileSystem that will be a singleton
+	 * Set a reference to the IRODSFileSystem
 	 * 
-	 * @return
+	 * @return {@link IRODSFileSystem}
 	 */
-	public IRODSFileSystem instanceIrodsFileSystem() {
-		return IRODSFileSystemSingletonWrapper.instance();
+	public IRODSFileSystem getIrodsFileSystem() {
+		return this.irodsFileSystem;
+	}
+
+	public void setIrodsFileSystem(final IRODSFileSystem irodsFileSystem) {
+		this.setIrodsFileSystem(irodsFileSystem);
 	}
 
 	@Override

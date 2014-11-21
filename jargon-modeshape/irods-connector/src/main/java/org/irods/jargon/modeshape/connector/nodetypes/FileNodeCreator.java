@@ -45,7 +45,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			IrodsWriteableConnector irodsWriteableConnector) {
 		super(irodsAccessObjectFactory, irodsAccount, irodsWriteableConnector);
 
-		this.fileFromIdConverter = new FileFromIdCoverterImpl(
+		this.fileFromIdConverter = new FileFromIdConverterImpl(
 				irodsAccessObjectFactory, irodsAccount,
 				irodsWriteableConnector.getPathUtilities());
 
@@ -94,6 +94,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		writer.addProperty(PathUtilities.JCR_CREATED_BY, null); // ignored
 
 		log.info("adding AVU children for the collection");
+
 		addAvuChildrenForCollection(file.getAbsolutePath(), id, writer);
 		log.info("AVU children added");
 
@@ -237,7 +238,13 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	private void addAvuChildrenForCollection(final String path,
 			final String id, final DocumentWriter writer) {
 
-		assert path != null && !path.isEmpty();
+		log.info("addAvuChildrenForCollection()");
+
+		if (!this.isIncludeAvus()) {
+			log.info("avus not included");
+			return;
+		}
+
 		List<MetaDataAndDomainData> metadatas;
 		try {
 
