@@ -38,10 +38,17 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	public static final int JCR_CONTENT_SUFFIX_LENGTH = PathUtilities.JCR_CONTENT_SUFFIX
 			.length();
 
+	private final FileFromIdConverter fileFromIdConverter;
+
 	public FileNodeCreator(IRODSAccessObjectFactory irodsAccessObjectFactory,
 			IRODSAccount irodsAccount,
 			IrodsWriteableConnector irodsWriteableConnector) {
 		super(irodsAccessObjectFactory, irodsAccount, irodsWriteableConnector);
+
+		this.fileFromIdConverter = new FileFromIdCoverterImpl(
+				irodsAccessObjectFactory, irodsAccount,
+				irodsWriteableConnector.getPathUtilities());
+
 	}
 
 	/*
@@ -61,7 +68,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		log.info("id:{}", id);
 		log.info("offset:{}", offset);
 
-		IRODSFile file = fileFor(id);
+		IRODSFile file = fileFromIdConverter.fileFor(id);
 		if (this.getPathUtilities().isExcluded(file)) {
 			log.info("file is excluded by filter or does not exist..return null");
 			return null;
@@ -168,31 +175,6 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	}
 
 	/**
-	 * Given an id in ModeShape terms, return the corresponding iRODS file
-	 * 
-	 * @param id
-	 *            <code>String</code> with the ModeShape id
-	 * @return {@link File} that is the iRODS file
-	 * @throws JargonException
-	 */
-	private IRODSFile fileFor(String id) throws JargonException {
-		log.info("fileFor()");
-		log.info("id:{}", id);
-
-		String strippedId = PathUtilities.stripTrailingDelimFromIdIfPresent(id);
-		String parentPath = this.getPathUtilities()
-				.getDirectoryPathWithTrailingSlash();
-
-		log.info("getting file for parent path:{}", parentPath);
-		log.info("child path:{}", strippedId);
-
-		return this.getIrodsAccessObjectFactory()
-				.getIRODSFileFactory(getIrodsAccount())
-				.instanceIRODSFile(parentPath, strippedId);
-
-	}
-
-	/**
 	 * For a given data object, create a set of child documents of type
 	 * irods:avu that represents the AVU metadata
 	 * 
@@ -259,10 +241,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		List<MetaDataAndDomainData> metadatas;
 		try {
 
-			File fileForProps;
-
-			fileForProps = (File) IRODSFileSystemSingletonWrapper.instance()
-					.getIRODSAccessObjectFactory()
+			File fileForProps = (File) getIrodsAccessObjectFactory()
 					.getIRODSFileFactory(this.getIrodsAccount())
 					.instanceIRODSFile(path);
 
