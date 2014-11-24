@@ -214,7 +214,20 @@
 				<type>test-jar</type>
 				<scope>test</scope>
 			</dependency>
-
+			<dependency>
+				<groupId>org.modeshape</groupId>
+				<artifactId>modeshape-jcr</artifactId>
+				<version>${modeshape.version}</version>
+				<type>test-jar</type>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.modeshape</groupId>
+				<artifactId>modeshape-common</artifactId>
+				<version>${modeshape.version}</version>
+				<type>test-jar</type>
+				<scope>test</scope>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
