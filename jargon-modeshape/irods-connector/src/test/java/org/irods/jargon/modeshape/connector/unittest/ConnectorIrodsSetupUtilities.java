@@ -65,6 +65,31 @@ public class ConnectorIrodsSetupUtilities {
 	}
 
 	/**
+	 * Get the irods absolute path for the root of the modeshape projection
+	 * 
+	 * @return <code>String</code> with the iRODS absolute path to the root of
+	 *         the projection
+	 * @throws Exception
+	 */
+	public String absolutePathForProjectionRoot() throws Exception {
+		return testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH)
+				+ "/" + IRODS_TEST_SUBDIR_PATH;
+
+	}
+
+	/**
+	 * Fixme, use this for preprocessing a config file so this is all pluggable
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	public String idForProjectionRoot() throws Exception {
+		return "/irodsGrid";
+	}
+
+	/**
 	 * build test directories
 	 * 
 	 * @throws TestingUtilsException

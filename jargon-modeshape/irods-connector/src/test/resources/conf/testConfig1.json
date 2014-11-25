@@ -1,10 +1,24 @@
  {
     "name" : "irods",
+    "transactionMode" : "auto",
+    "monitoring" : {
+        "enabled" : true,
+    },
      "workspaces" : {
         "predefined" : ["otherWorkspace"],
         "default" : "default",
         "allowCreation" : true,
     },
+    "storage" : {
+        "cacheName" : "irods",
+        "cacheConfiguration" : "conf/infinispan.xml",        
+        "binaryStorage" : {
+            "type" : "file",
+            "directory" : "irods/binaries",
+            "minimumBinarySizeInBytes" : 0
+        }
+    },
+    
      "externalSources" : {
         "irods-modeshape" : {
             "classname" : "org.irods.jargon.modeshape.connector.IrodsWriteableConnector",
@@ -18,5 +32,6 @@
              "cacheTtlSeconds" : 0,
             "exclusionPattern" : ".+[.]tmp$"
         }
-    }
+    },
+     "node-types" : ["conf/irods.cnd"]
 }
