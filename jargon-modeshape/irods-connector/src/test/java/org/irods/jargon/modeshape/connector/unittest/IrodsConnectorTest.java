@@ -105,24 +105,6 @@ public class IrodsConnectorTest extends ModeShapeMultiUseTest {
 	}
 
 	@Test
-	public void testGetJcrSystem() throws Exception {
-		File rootFile = (File) connectorIrodsSetupUtilities
-				.getIrodsFileSystem()
-				.getIRODSFileFactory(
-						connectorIrodsSetupUtilities.getIrodsAccount())
-				.instanceIRODSFile(
-						connectorIrodsSetupUtilities
-								.absolutePathForProjectionRoot());
-		Node actual = session.getNodeByIdentifier("jcr:system");
-		NodeIterator iter = actual.getNodes();
-
-		while (iter.hasNext()) {
-			log.info("next child:{}", iter.next());
-		}
-
-	}
-
-	@Test
 	public void testGetRoot() throws Exception {
 
 		Node actual = session.getRootNode();
@@ -144,7 +126,7 @@ public class IrodsConnectorTest extends ModeShapeMultiUseTest {
 						connectorIrodsSetupUtilities
 								.absolutePathForProjectionRoot());
 		Node actual = session.getNodeByIdentifier(connectorIrodsSetupUtilities
-				.idForProjectionRoot() + "/col1");
+				.idForProjectionRoot());
 		assertFolder(actual, rootFile);
 
 	}

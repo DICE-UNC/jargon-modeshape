@@ -310,7 +310,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		try {
 
 			IRODSAccount irodsAccount = IRODSAccount.instance(
-					"consortium.local", 1247, "test1", "test", "", "test1", "");
+					"fedzone1.irods.org", 1247, "test1", "test", "",
+					"fedZone1", "");
 			return irodsAccount;
 
 		} catch (JargonException e) {
