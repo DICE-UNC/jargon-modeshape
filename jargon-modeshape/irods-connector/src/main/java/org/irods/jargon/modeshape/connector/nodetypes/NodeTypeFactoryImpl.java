@@ -87,20 +87,18 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 				.getPathUtilities().getNodeTypeForId(id);
 		log.info("resolved node type:{}", irodsNodeType);
 
-		AbstractNodeTypeCreator abstractNodeTypeCreator = null;
 		switch (irodsNodeType) {
 		case ROOT_NODE:
-			break;
+			return new FileNodeCreator(irodsAccessObjectFactory, irodsAccount,
+					irodsWriteableConnector);
 		case CONTENT_NODE:
-			break;
+			throw new UnsupportedOperationException("blah");
 		case AVU_NODE:
-			break;
+			throw new UnsupportedOperationException("blah");
 		default:
 			return new FileNodeCreator(irodsAccessObjectFactory, irodsAccount,
 					irodsWriteableConnector);
 		}
-
-		return abstractNodeTypeCreator;
 
 	}
 

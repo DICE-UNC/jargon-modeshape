@@ -153,6 +153,14 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	public String getDocumentId(final String path) {
 
 		// this connector treats the ID as the path
+		log.info("getDocumentId()");
+
+		if (path == null) {
+			throw new IllegalArgumentException("null path");
+		}
+
+		log.info("path:{}", path);
+
 		try {
 			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
 					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
@@ -169,33 +177,58 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	}
 
 	@Override
-	public Collection<String> getDocumentPathsById(String arg0) {
+	public Collection<String> getDocumentPathsById(String id) {
+		log.info("getDocumentPathsById()");
+		if (id == null) {
+			throw new IllegalArgumentException("null id");
+		}
+		log.info("id:{}", id);
+
 		return null;
 	}
 
 	@Override
-	public boolean hasDocument(String arg0) {
+	public boolean hasDocument(String id) {
+		log.info("hasDocument()");
+		if (id == null) {
+			throw new IllegalArgumentException("null id");
+		}
+		log.info("id:{}", id);
 		return false;
 	}
 
 	@Override
-	public String newDocumentId(String arg0, Name arg1, Name arg2) {
+	public String newDocumentId(String parentId, Name childId,
+			Name childPrimaryType) {
+		log.info("newDocumentId()");
 		return null;
 	}
 
 	@Override
-	public boolean removeDocument(String arg0) {
+	public boolean removeDocument(String id) {
+		log.info("removeDocument()");
+		if (id == null) {
+			throw new IllegalArgumentException("null id");
+		}
+		log.info("id:{}", id);
 		return false;
 	}
 
 	@Override
-	public void storeDocument(Document arg0) {
+	public void storeDocument(Document document) {
+		log.info("storeDocument()");
+		if (document == null) {
+			throw new IllegalArgumentException("null document");
+		}
 
 	}
 
 	@Override
-	public void updateDocument(DocumentChanges arg0) {
-
+	public void updateDocument(DocumentChanges documentChanges) {
+		log.info("updateDocument()");
+		if (documentChanges == null) {
+			throw new IllegalArgumentException("null documentChanges");
+		}
 	}
 
 	/**
@@ -310,8 +343,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		try {
 
 			IRODSAccount irodsAccount = IRODSAccount.instance(
-					"fedzone1.irods.org", 1247, "test1", "test", "",
-					"fedZone1", "");
+					"consortium.local", 1247, "test1", "test", "", "test1", "");
 			return irodsAccount;
 
 		} catch (JargonException e) {
@@ -392,7 +424,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 	@Override
 	public Document getChildren(PageKey pageKey) {
-		// TODO Auto-generated method stub
+		log.info("getChildren()");
 		return null;
 	}
 

@@ -18,20 +18,28 @@
             "minimumBinarySizeInBytes" : 0
         }
     },
-    
+    "security" : {
+        "anonymous" : {
+            "roles" : ["readonly","readwrite","admin"],
+            "useOnFailedLogin" : true
+        }
+    },
+   
      "externalSources" : {
         "irods-modeshape" : {
             "classname" : "org.irods.jargon.modeshape.connector.IrodsWriteableConnector",
-            "directoryPath" : "/fedZone1/home/test1/jargon-scratch/ModeshapeConnectorRoot/ModeshapeConnectorRoot", 
+            "directoryPath" : "/test1/home/test1/jargon-scratch/ModeshapeConnectorRoot/ModeshapeConnectorRoot", 
             "projections" : [
                 "default:/irodsGrid => /"
             ],
             "readOnly" : false,
             "addMimeTypeMixin" : false,
             "addAvus" : false,
-             "cacheTtlSeconds" : 0,
+             "cacheTtlSeconds" : 20,
             "exclusionPattern" : ".+[.]tmp$"
         }
     },
      "node-types" : ["conf/irods.cnd"]
 }
+
+

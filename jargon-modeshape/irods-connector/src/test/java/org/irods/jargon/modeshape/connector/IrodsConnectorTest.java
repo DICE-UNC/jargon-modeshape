@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.irods.jargon.modeshape.connector.unittest;
+package org.irods.jargon.modeshape.connector;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -9,21 +9,25 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Properties;
+import java.util.concurrent.Future;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
+import org.irods.jargon.core.connection.IRODSAccount;
+import org.irods.jargon.modeshape.connector.unittest.ConnectorIrodsSetupUtilities;
+import org.irods.jargon.testutils.TestingPropertiesHelper;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.modeshape.common.util.IoUtil;
+import org.modeshape.jcr.ModeShapeEngine;
 import org.modeshape.jcr.RepositoryConfiguration;
 import org.modeshape.jcr.api.Binary;
-import org.modeshape.jcr.api.Session;
-import org.modeshape.test.ModeShapeMultiUseTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,80 +44,85 @@ import org.slf4j.LoggerFactory;
  *         /modeshape-jcr/src/test
  *         /java/org/modeshape/jcr/MultiUseAbstractTest.java
  */
-public class IrodsConnectorTest extends ModeShapeMultiUseTest {
+public class IrodsConnectorTest {
 
-	private Node testRoot;
+	private static org.modeshape.jcr.ModeShapeEngine engine;
 	private static ConnectorIrodsSetupUtilities connectorIrodsSetupUtilities;
 	public static final Logger log = LoggerFactory
 			.getLogger(IrodsConnectorTest.class);
+	private static Properties testingProperties = new Properties();
+	private static TestingPropertiesHelper testingPropertiesHelper = new TestingPropertiesHelper();
+	private static Session session;
 
 	@BeforeClass
-	public static void beforeAll() throws Exception {
+	public static void setUpBeforeClass() throws Exception {
 		connectorIrodsSetupUtilities = new ConnectorIrodsSetupUtilities();
 		connectorIrodsSetupUtilities.init();
+
+		TestingPropertiesHelper testingPropertiesLoader = new TestingPropertiesHelper();
+		testingProperties = testingPropertiesLoader.getTestProperties();
+
+		engine = new ModeShapeEngine();
+		engine.start();
 		RepositoryConfiguration config = RepositoryConfiguration
 				.read("conf/testConfig1.json");
-		startRepository(config);
 
-		Session session = getSession();
-		// Node testRoot = session.getRootNode().addNode("repos");
-		session.save();
+		// Verify the configuration for the repository ...
+		org.modeshape.common.collection.Problems problems = config.validate();
+		if (problems.hasErrors()) {
+			System.err.println("Problems starting the engine.");
+			System.err.println(problems);
+			System.exit(-1);
+		}
 
-		/*
-		 * FederationManager fedMgr = session.getWorkspace()
-		 * .getFederationManager();
-		 */
+		javax.jcr.Repository repo = engine.deploy(config);
 
-		/**
-		 * from
-		 * http://docs.jboss.org/modeshape/4.0.0.Final/api/org/modeshape/jcr
-		 * /api/federation/FederationManager.html
-		 * 
-		 * Creates an external projection by linking an internal node with an
-		 * external node, from a given source using an optional alias. If this
-		 * is the first node linked to the existing node, it will convert the
-		 * existing node to a federated node.
-		 * 
-		 * Parameters:
-		 * 
-		 * absNodePath - a non-null string representing the absolute path to an
-		 * existing internal node.
-		 * 
-		 * sourceName - a non-null string representing the name of an external
-		 * source, configured in the repository.
-		 * 
-		 * externalPath - a non-null string representing a path in the external
-		 * source, where at which there is an external node that will be linked.
-		 * 
-		 * alias - an optional string representing the name under which the
-		 * alias should be created. If not present, the externalPath will be
-		 * used as the name of the alias.
-		 */
+		String repositoryName = config.getName();
+		log.info("repo name:{}", repositoryName);
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
+		session = repo.login("default");
 
-		// fedMgr.createProjection(testRoot.getPath(), "irods-modeshape", "/",
-		// "");
+		// Get the root node ...
+		Node root = session.getRootNode();
+		dumpNodes(root, 0);
+
+		assert root != null;
+
+	}
+
+	private static void dumpNodes(Node parent, int depth)
+			throws RepositoryException {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < depth; i++) {
+			sb.append("-");
+		}
+		sb.append("name:");
+		sb.append(parent.getName());
+		sb.append("  path:");
+		sb.append(parent.getPath());
+		sb.append(" id:");
+		sb.append(parent.getIdentifier());
+		log.info(sb.toString());
+
+		NodeIterator iter = parent.getNodes();
+		int currentLevel = depth;
+		while (iter.hasNext()) {
+
+			Node next = iter.nextNode();
+			dumpNodes(next, currentLevel + 1);
+
+		}
+
 	}
 
 	@AfterClass
-	public static final void afterAll() throws Exception {
-		ModeShapeMultiUseTest.afterAll();
-	}
-
-	@Before
-	public void before() throws Exception {
-		// testRoot = getSession().getRootNode().getNode("repos");
-	}
-
-	@Test
-	public void testGetRoot() throws Exception {
-
-		Node actual = session.getRootNode();
-		NodeIterator iter = actual.getNodes();
-
-		while (iter.hasNext()) {
-			log.info("next child:{}", iter.next());
+	public static void tearDownAfterClass() throws Exception {
+		Future<Boolean> future = engine.shutdown();
+		if (future.get()) { // optional, but blocks until engine is completely
+							// shutdown or interrupted
+			System.out.println("Shut down ModeShape");
 		}
-
 	}
 
 	@Test
@@ -125,8 +134,10 @@ public class IrodsConnectorTest extends ModeShapeMultiUseTest {
 				.instanceIRODSFile(
 						connectorIrodsSetupUtilities
 								.absolutePathForProjectionRoot());
-		Node actual = session.getNodeByIdentifier(connectorIrodsSetupUtilities
-				.idForProjectionRoot());
+		Node actual = session.getNodeByIdentifier("/irodsGrid");
+
+		// connectorIrodsSetupUtilities
+		// .idForProjectionRoot());
 		assertFolder(actual, rootFile);
 
 	}
