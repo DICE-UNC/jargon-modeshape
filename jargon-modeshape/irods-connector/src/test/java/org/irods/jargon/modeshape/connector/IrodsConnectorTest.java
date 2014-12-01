@@ -95,7 +95,7 @@ public class IrodsConnectorTest {
 			throws RepositoryException {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < depth; i++) {
-			sb.append("-");
+			sb.append("--");
 		}
 		sb.append("name:");
 		sb.append(parent.getName());
@@ -103,15 +103,15 @@ public class IrodsConnectorTest {
 		sb.append(parent.getPath());
 		sb.append(" id:");
 		sb.append(parent.getIdentifier());
+		sb.append(" nodeType:");
+		sb.append(parent.getPrimaryNodeType());
 		log.info(sb.toString());
 
 		NodeIterator iter = parent.getNodes();
 		int currentLevel = depth;
 		while (iter.hasNext()) {
-
 			Node next = iter.nextNode();
 			dumpNodes(next, currentLevel + 1);
-
 		}
 
 	}
@@ -134,7 +134,7 @@ public class IrodsConnectorTest {
 				.instanceIRODSFile(
 						connectorIrodsSetupUtilities
 								.absolutePathForProjectionRoot());
-		Node actual = session.getNodeByIdentifier("/irodsGrid");
+		Node actual = session.getNodeByIdentifier("/irodsGrid/col1");
 
 		// connectorIrodsSetupUtilities
 		// .idForProjectionRoot());

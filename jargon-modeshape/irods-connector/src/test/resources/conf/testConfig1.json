@@ -35,7 +35,7 @@
             "readOnly" : false,
             "addMimeTypeMixin" : false,
             "addAvus" : false,
-             "cacheTtlSeconds" : 20,
+             "cacheTtlSeconds" : 640,
             "exclusionPattern" : ".+[.]tmp$"
         }
     },

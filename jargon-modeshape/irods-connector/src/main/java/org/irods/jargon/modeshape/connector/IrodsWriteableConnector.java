@@ -124,9 +124,11 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			}
 
 			log.info("id:{}", id);
-
+			Document document = null;
 			try {
-				return nodeTypeFactory.instanceForId(id, 0).getDocument(id);
+				document = nodeTypeFactory.instanceForId(id, 0);
+				log.debug("returning document:{}", document);
+				return document;
 			} catch (UnknownNodeTypeException e) {
 				log.error("unknown node type for id:{}", id, e);
 				throw new DocumentStoreException(id, e);

@@ -139,7 +139,9 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 					totalChildren);
 		}
 
-		return writer.document();
+		Document myDoc = writer.document();
+		log.debug("myDoc from create for file:{}", myDoc);
+		return myDoc;
 	}
 
 	private Document instanceForIdAsFile(String id, IRODSFile file) {
