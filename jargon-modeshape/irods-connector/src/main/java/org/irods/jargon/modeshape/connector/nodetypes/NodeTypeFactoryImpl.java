@@ -91,7 +91,7 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 		case ROOT_NODE:
 			return new FileNodeCreator(irodsAccessObjectFactory, irodsAccount,
 					irodsWriteableConnector);
-		case CONTENT_NODE:
+		case RESOURCE_NODE:
 			throw new UnsupportedOperationException("blah");
 		case AVU_NODE:
 			throw new UnsupportedOperationException("blah");

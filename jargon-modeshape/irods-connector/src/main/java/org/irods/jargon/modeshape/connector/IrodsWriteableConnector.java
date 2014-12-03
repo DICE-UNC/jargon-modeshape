@@ -99,13 +99,6 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 */
 	private PathUtilities pathUtilities;
 
-	/**
-	 * Created during the init phase, this factory will produce node creators
-	 * based on the JCR types in the given ids
-	 */
-
-	private NodeTypeFactory nodeTypeFactory;
-
 	private IRODSFileSystem irodsFileSystem;
 
 	/**
@@ -126,7 +119,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			log.info("id:{}", id);
 			Document document = null;
 			try {
-				document = nodeTypeFactory.instanceForId(id, 0);
+				document = instanceNodeTypeFactory(getIrodsAccount())
+						.instanceForId(id, 0);
 				log.debug("returning document:{}", document);
 				return document;
 			} catch (UnknownNodeTypeException e) {
@@ -320,16 +314,6 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			this.pathUtilities = new PathUtilities(directoryPath,
 					filenameFilter);
 
-			try {
-				this.nodeTypeFactory = new NodeTypeFactoryImpl(this
-						.getIrodsFileSystem().getIRODSAccessObjectFactory(),
-						getIrodsAccount(), this);
-			} catch (JargonException e) {
-				log.error("error creating NodeTypeFactory", e);
-				throw new RepositoryException(
-						"jargon error creating factory for creating nodes", e);
-			}
-
 			log.info("initialized");
 		} finally {
 			this.getIrodsFileSystem().closeAndEatExceptions();
@@ -345,7 +329,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		try {
 
 			IRODSAccount irodsAccount = IRODSAccount.instance(
-					"consortium.local", 1247, "test1", "test", "", "test1", "");
+					"fedzone1.irods.org", 1247, "test1", "test", "",
+					"fedZone1", "");
 			return irodsAccount;
 
 		} catch (JargonException e) {
@@ -432,9 +417,18 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 	/**
 	 * @return the nodeTypeFactory
+	 * @throws JargonException
 	 */
-	public NodeTypeFactory getNodeTypeFactory() {
-		return nodeTypeFactory;
+	public NodeTypeFactory instanceNodeTypeFactory(
+			final IRODSAccount irodsAccount) throws JargonException {
+
+		if (irodsAccount == null) {
+			throw new IllegalArgumentException("null irodsAcount");
+		}
+
+		return new NodeTypeFactoryImpl(this.getIrodsFileSystem()
+				.getIRODSAccessObjectFactory(), irodsAccount, this);
+
 	}
 
 }

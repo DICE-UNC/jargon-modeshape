@@ -28,10 +28,11 @@
      "externalSources" : {
         "irods-modeshape" : {
             "classname" : "org.irods.jargon.modeshape.connector.IrodsWriteableConnector",
-            "directoryPath" : "/test1/home/test1/jargon-scratch/ModeshapeConnectorRoot/ModeshapeConnectorRoot", 
+            "directoryPath" : "/fedZone1/home/test1/jargon-scratch/ModeshapeConnectorRoot/ModeshapeConnectorRoot", 
             "projections" : [
                 "default:/irodsGrid => /"
             ],
+             "queryable" : false,
             "readOnly" : false,
             "addMimeTypeMixin" : false,
             "addAvus" : false,
@@ -39,6 +40,7 @@
             "exclusionPattern" : ".+[.]tmp$"
         }
     },
+    
      "node-types" : ["conf/irods.cnd"]
 }
 

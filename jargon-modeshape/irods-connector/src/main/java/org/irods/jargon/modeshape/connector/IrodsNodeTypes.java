@@ -11,8 +11,9 @@ package org.irods.jargon.modeshape.connector;
  */
 public enum IrodsNodeTypes {
 
-	UNKNOWN("UNKNOWN"), ROOT_NODE(PathUtilities.DELIMITER), CONTENT_NODE(
-			"nt:resource"), AVU_NODE("irods:avu"), FILE_NODE("");
+	UNKNOWN("UNKNOWN"), ROOT_NODE(PathUtilities.DELIMITER), RESOURCE_NODE(
+			"nt:resource"), CONTENT_NODE("jcr:content"), AVU_NODE("irods:avu"), FILE_NODE(
+			"");
 
 	private String nodeTypeIdSuffix;
 
@@ -32,12 +33,17 @@ public enum IrodsNodeTypes {
 	 * 
 	 * @param id
 	 * @return
+	 * 
+	 *         id:/col1/file613.txt/jcr:content
+	 * 
 	 */
 	public static IrodsNodeTypes determineNodeTypeFromId(final String id) {
 		if (PathUtilities.DELIMITER.equals(id) || id.isEmpty()) {
 			return ROOT_NODE;
 		} else if (id.endsWith(CONTENT_NODE.nodeTypeIdSuffix)) {
 			return CONTENT_NODE;
+		} else if (id.endsWith(RESOURCE_NODE.nodeTypeIdSuffix)) {
+			return RESOURCE_NODE;
 		} else if (id.endsWith(AVU_NODE.nodeTypeIdSuffix)) {
 			return AVU_NODE;
 		}
