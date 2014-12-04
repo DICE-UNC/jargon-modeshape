@@ -56,7 +56,6 @@ public class IrodsBinaryValue extends UrlBinaryValue {
 	 */
 	@Override
 	protected URL toUrl() {
-		// TODO Auto-generated method stub
 		return super.toUrl();
 	}
 

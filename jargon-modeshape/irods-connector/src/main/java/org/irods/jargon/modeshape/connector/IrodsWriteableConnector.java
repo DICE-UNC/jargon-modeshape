@@ -137,7 +137,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			}
 
 		} finally {
-			this.getIrodsFileSystem().closeAndEatExceptions();
+			// this.getIrodsFileSystem().closeAndEatExceptions();
 		}
 
 	}
@@ -370,16 +370,14 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @return {@link DocumentWriter}
 	 */
 	public DocumentWriter createNewDocumentForId(final String id) {
-		try {
-			log.info("createNewDocumentForId()");
-			if (id == null || id.isEmpty()) {
-				throw new IllegalArgumentException("null or empty id");
-			}
 
-			return this.newDocument(id);
-		} finally {
-			this.getIrodsFileSystem().closeAndEatExceptions();
+		log.info("createNewDocumentForId()");
+		if (id == null || id.isEmpty()) {
+			throw new IllegalArgumentException("null or empty id");
 		}
+
+		return this.newDocument(id);
+
 	}
 
 	/**

@@ -106,39 +106,32 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		addAvuChildrenForCollection(file.getAbsolutePath(), id, writer);
 		log.info("AVU children added");
 
-		File[] children = file.listFiles(this.getPathUtilities()
+		String[] children = file.list(this.getPathUtilities()
 				.getInclusionExclusionFilenameFilter());
 		long totalChildren = 0;
 		int nextOffset = 0;
 		log.info("parent is:{}", file.getAbsolutePath());
 		for (int i = 0; i < children.length; i++) {
-			File child = children[i];
-			// Only include as a child if we can access and read the file.
-			// Permissions might prevent us from
-			// reading the file, and the file might not exist if it is a broken
-			// symlink (see MODE-1768 for details).
-			if (child.exists() && child.canRead()
-					&& (child.isFile() || child.isDirectory())) {
-				// we need to count the total accessible children
-				totalChildren++;
-				// only add a child if it's in the current page
-				if (i >= offset
-						&& i < offset + IrodsWriteableConnector.PAGE_SIZE) {
-					// We use identifiers that contain the file/directory name
-					// ...
+			String child = children[i];
 
-					String childName = child.getName();
-					String childId = PathUtilities.isRoot(id) ? PathUtilities.DELIMITER
-							+ childName
-							: id + PathUtilities.DELIMITER + childName;
+			// we need to count the total accessible children
+			totalChildren++;
+			// only add a child if it's in the current page
+			if (i >= offset && i < offset + IrodsWriteableConnector.PAGE_SIZE) {
+				// We use identifiers that contain the file/directory name
+				// ...
+				// String childName = child.getName();
+				String childId = PathUtilities.isRoot(id) ? PathUtilities.DELIMITER
+						+ child
+						: id + PathUtilities.DELIMITER + child;
 
-					writer.addChild(childId, childName);
+				writer.addChild(childId, child);
 
-					log.info("added child directory with name:{}", childName);
+				log.info("added child directory with name:{}", child);
 
-				}
-				nextOffset = i + 1;
 			}
+			nextOffset = i + 1;
+
 		}
 
 		// if there are still accessible children add the next page
