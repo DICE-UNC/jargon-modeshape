@@ -3,9 +3,10 @@
  */
 package org.irods.jargon.modeshape.connector.nodetypes;
 
+import javax.jcr.RepositoryException;
+
 import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
-import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.service.AbstractJargonService;
 import org.irods.jargon.modeshape.connector.IrodsNodeTypes;
@@ -60,7 +61,7 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 	 */
 	@Override
 	public Document instanceForId(final String id, final int offset)
-			throws JargonException {
+			throws RepositoryException, UnknownNodeTypeException {
 		log.info("instanceForId()");
 
 		if (id == null || id.isEmpty()) {
@@ -93,6 +94,9 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 					irodsWriteableConnector);
 		case RESOURCE_NODE:
 			throw new UnsupportedOperationException("blah");
+		case CONTENT_NODE:
+			return new ContentNodeCreator(irodsAccessObjectFactory,
+					irodsAccount, irodsWriteableConnector);
 		case AVU_NODE:
 			throw new UnsupportedOperationException("blah");
 		default:

@@ -6,6 +6,8 @@ package org.irods.jargon.modeshape.connector.nodetypes;
 import java.io.File;
 import java.util.List;
 
+import javax.jcr.RepositoryException;
+
 import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.FileNotFoundException;
@@ -60,7 +62,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	 */
 	@Override
 	public Document instanceForId(final String id, final int offset)
-			throws JargonException {
+			throws RepositoryException {
 		log.info("instanceForId()");
 		if (id == null || id.isEmpty()) {
 			throw new IllegalArgumentException("null or empty id");
@@ -68,7 +70,13 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		log.info("id:{}", id);
 		log.info("offset:{}", offset);
 
-		IRODSFile file = fileFromIdConverter.fileFor(id);
+		IRODSFile file;
+		try {
+			file = fileFromIdConverter.fileFor(id);
+		} catch (JargonException e) {
+			log.error("error getting file from id", e);
+			throw new RepositoryException("error getting file", e);
+		}
 		if (this.getPathUtilities().isExcluded(file)) {
 			log.info("file is excluded by filter or does not exist..return null");
 			return null;
@@ -160,7 +168,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			log.info("not root, set reference to parent");
 			// Set the reference to the parent ...
 			String parentId = this.getPathUtilities().idFor(
-					file.getParentFile());
+					(IRODSFile) file.getParentFile());
 			writer.setParents(parentId);
 		}
 

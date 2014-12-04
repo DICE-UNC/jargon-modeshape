@@ -4,13 +4,18 @@
 package org.irods.jargon.modeshape.connector;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
 
 import javax.jcr.NamespaceRegistry;
 
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeAndId;
+import org.modeshape.common.util.SecureHash;
+import org.modeshape.connector.filesystem.FileSystemConnector;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 import org.modeshape.jcr.cache.DocumentStoreException;
+import org.modeshape.jcr.spi.federation.ConnectorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +40,7 @@ public class PathUtilities {
 	public static final String JCR_LAST_MODIFIED_BY = "jcr:lastModified";
 	public static final String NT_FOLDER = "nt:folder";
 	public static final String NT_FILE = "nt:file";
+	public static final String NT_RESOURCE = "nt:resource";
 	public static final String JCR_CONTENT = "jcr:content";
 	public static final String JCR_CONTENT_SUFFIX = DELIMITER + JCR_CONTENT;
 	public static final String JCR_IRODS_IRODSOBJECT = "irods:irodsobject";
@@ -268,7 +274,7 @@ public class PathUtilities {
 	 * @see #isContentNode(String)
 	 * @see #fileFor(String)
 	 */
-	public String idFor(final File file) {
+	public String idFor(final IRODSFile file) {
 		String path = file.getAbsolutePath();
 		if (!path.startsWith(getDirectoryPathWithTrailingSlash())) {
 			if (getDirectoryPath().equals(path)) {
@@ -321,6 +327,46 @@ public class PathUtilities {
 		nodeTypeAndId.setId(myId);
 		log.info("nodeTypeAndId determined:{}", nodeTypeAndId);
 		return nodeTypeAndId;
+	}
+
+	/**
+	 * Computes the SHA1 for the given file. By default, this method will look
+	 * at the {@link FileSystemConnector#contentBasedSha1()} flag and either
+	 * take the URL of the file (using @see java.util.File#toURI().toURL() and
+	 * return the SHA1 of the URL string or return the SHA1 of the entire file
+	 * content.
+	 * 
+	 * @param file
+	 *            a {@link IRODSFile} instance; never null
+	 * @return the SHA1 of the file.
+	 */
+	public String sha1(final IRODSFile file) {
+		try {
+			return SecureHash.sha1(createUrlForFile(file).toString());
+		} catch (Exception e) {
+			throw new ConnectorException(e);
+		}
+	}
+
+	/**
+	 * Construct a {@link URL} object for the given file, to be used within the
+	 * {@link Binary} value representing the "jcr:data" property of a
+	 * 'nt:resource' node.
+	 * <p>
+	 * Subclasses can override this method to transform the URL into something
+	 * different. For example, if the files are being served by a web server,
+	 * the overridden method might transform the file-based URL into the
+	 * corresponding HTTP-based URL.
+	 * </p>
+	 * 
+	 * @param file
+	 *            the file for which the URL is to be created; never null
+	 * @return the URL for the file; never null
+	 * @throws IOException
+	 *             if there is an error creating the URL
+	 */
+	public URL createUrlForFile(final IRODSFile file) throws IOException {
+		return file.toFileBasedURL();
 	}
 
 }

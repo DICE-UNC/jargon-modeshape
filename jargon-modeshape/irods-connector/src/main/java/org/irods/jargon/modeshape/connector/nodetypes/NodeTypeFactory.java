@@ -1,7 +1,8 @@
 package org.irods.jargon.modeshape.connector.nodetypes;
 
+import javax.jcr.RepositoryException;
+
 import org.infinispan.schematic.document.Document;
-import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.modeshape.connector.IrodsNodeTypes;
 import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
 
@@ -23,9 +24,10 @@ public interface NodeTypeFactory {
 	 *            <code>int</code> with an optional offset for any paging of
 	 *            child nodes. 0 if not used.
 	 * @return {@link Document}
-	 * @throws JargonException
+	 * @throws UnknownNodeTypeException
+	 * @throws RepositoryException
 	 */
 	public abstract Document instanceForId(final String id, final int offset)
-			throws UnknownNodeTypeException, JargonException;
+			throws UnknownNodeTypeException, RepositoryException;
 
 }

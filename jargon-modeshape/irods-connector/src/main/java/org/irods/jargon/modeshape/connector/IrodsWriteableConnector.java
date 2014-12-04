@@ -130,6 +130,10 @@ public class IrodsWriteableConnector extends WritableConnector implements
 				log.error("jargon exception getting  node type for id:{}", id,
 						e);
 				throw new DocumentStoreException(id, e);
+			} catch (RepositoryException e) {
+				log.error("repository exception getting  node type for id:{}",
+						id, e);
+				throw new DocumentStoreException(id, e);
 			}
 
 		} finally {

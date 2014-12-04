@@ -3,9 +3,10 @@
  */
 package org.irods.jargon.modeshape.connector.nodetypes;
 
+import javax.jcr.RepositoryException;
+
 import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
-import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.service.AbstractJargonService;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
@@ -58,10 +59,10 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 * @param offset
 	 *            <code>int</code> with an optional offset for pagable nodes
 	 * @return {@link Document}
-	 * @throws JargonException
+	 * @throws RepositoryException
 	 */
 	public abstract Document instanceForId(final String id, final int offset)
-			throws JargonException;
+			throws RepositoryException;
 
 	/**
 	 * @return the pathUtilities
@@ -111,6 +112,34 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 */
 	protected boolean isIncludeAvus() {
 		return this.connector.isAddAvus();
+	}
+
+	/**
+	 * @return the mixMimeType
+	 */
+	protected static String getMixMimeType() {
+		return MIX_MIME_TYPE;
+	}
+
+	/**
+	 * @return the avuId
+	 */
+	protected static String getAvuId() {
+		return AVU_ID;
+	}
+
+	/**
+	 * @return the log
+	 */
+	protected static Logger getLog() {
+		return log;
+	}
+
+	/**
+	 * @return the connector
+	 */
+	protected IrodsWriteableConnector getConnector() {
+		return connector;
 	}
 
 }
