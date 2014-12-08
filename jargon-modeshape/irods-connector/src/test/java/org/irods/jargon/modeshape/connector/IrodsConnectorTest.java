@@ -133,8 +133,8 @@ public class IrodsConnectorTest {
 						connectorIrodsSetupUtilities.getIrodsAccount())
 				.instanceIRODSFile(
 						connectorIrodsSetupUtilities
-								.absolutePathForProjectionRoot());
-		Node actual = session.getNodeByIdentifier("/irodsGrid/col1");
+								.absolutePathForProjectionRoot() + "/col1");
+		Node actual = session.getNode("/irodsGrid/col1");
 
 		// connectorIrodsSetupUtilities
 		// .idForProjectionRoot());
@@ -155,7 +155,10 @@ public class IrodsConnectorTest {
 		assertThat(dir.exists(), is(true));
 		assertThat(dir.canRead(), is(true));
 		assertThat(dir.isDirectory(), is(true));
-		assertThat(node.getName(), is(dir.getName()));
+
+		log.info("node name:{}", node.getName());
+		log.info("node.identifier:{}", node.getIdentifier());
+
 		assertThat(node.getIndex(), is(1));
 		assertThat(node.getPrimaryNodeType().getName(), is("nt:folder"));
 		assertThat(node.getProperty("jcr:created").getLong(),

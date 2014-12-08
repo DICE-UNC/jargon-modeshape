@@ -311,7 +311,7 @@ public class PathUtilities {
 		IrodsNodeTypes nodeType = this.getNodeTypeForId(myId);
 
 		switch (nodeType) {
-		case RESOURCE_NODE:
+		case CONTENT_NODE:
 			myId = myId.substring(0, myId.length() - JCR_CONTENT_SUFFIX_LENGTH);
 			break;
 		case AVU_NODE:
