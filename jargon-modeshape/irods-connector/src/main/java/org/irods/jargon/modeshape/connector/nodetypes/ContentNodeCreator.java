@@ -81,8 +81,8 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 			return null;
 		}
 
-		DocumentWriter writer = newDocument(trimmedId);
-		BinaryValue binaryValue = createBinaryValue(file);
+		DocumentWriter writer = newDocument(id);
+		BinaryValue binaryValue = createBinaryValue(file, id);
 		writer.setPrimaryType(PathUtilities.NT_RESOURCE);
 		writer.addProperty(PathUtilities.JCR_DATA, binaryValue);
 		if (this.getConnector().isAddMimeTypeMixin()) {
@@ -132,11 +132,14 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 	 * @param file
 	 *            the file for which the {@link BinaryValue} is to be created;
 	 *            never null
+	 * @param id
+	 *            the <code>String</code> id for this content
 	 * @return the binary value; never null
 	 * @throws IOException
 	 *             if there is an error creating the value
 	 */
-	protected ExternalBinaryValue createBinaryValue(final IRODSFile file) {
+	protected ExternalBinaryValue createBinaryValue(final IRODSFile file,
+			final String id) {
 
 		log.info("createBinaryFile()");
 		assert file != null;

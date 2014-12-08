@@ -8,6 +8,7 @@ import java.util.Properties;
 
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.JargonException;
+import org.irods.jargon.core.exception.JargonRuntimeException;
 import org.irods.jargon.core.pub.DataObjectAO;
 import org.irods.jargon.core.pub.DataTransferOperations;
 import org.irods.jargon.core.pub.IRODSFileSystem;
@@ -31,6 +32,7 @@ public class ConnectorIrodsSetupUtilities {
 	private TestingPropertiesHelper testingPropertiesHelper = new TestingPropertiesHelper();
 	private static ScratchFileUtils scratchFileUtils = null;
 	public static final String IRODS_TEST_SUBDIR_PATH = "ModeshapeConnectorRoot";
+	public static final String FILES_CREATED_IN_TESTS_PATH = "FilesCreatedInTestsRoot";
 	private static IRODSTestSetupUtilities irodsTestSetupUtilities = null;
 	public static final String SKIP_DIR_BUILD = "test.modeshape.skip.dir.build.if.root.exists";
 	private IRODSAccount irodsAccount;
@@ -110,6 +112,12 @@ public class ConnectorIrodsSetupUtilities {
 		boolean exists = rootFile.exists();
 		log.info("root exists? {}", exists);
 		if (exists && skipDirBuildIfRootExists) {
+			try {
+				initializeFilesCreatedInTestsPath();
+			} catch (Exception e) {
+				log.error("error creating test subdir");
+				throw new JargonRuntimeException("error creating test paths");
+			}
 			log.info("skip the build!");
 			return;
 		}
@@ -121,6 +129,12 @@ public class ConnectorIrodsSetupUtilities {
 		irodsTestSetupUtilities.initializeIrodsScratchDirectory();
 		irodsTestSetupUtilities
 				.initializeDirectoryForTest(IRODS_TEST_SUBDIR_PATH);
+		try {
+			initializeFilesCreatedInTestsPath();
+		} catch (Exception e) {
+			log.error("error creating test subdir");
+			throw new JargonRuntimeException("error creating test paths");
+		}
 
 		log.info("clearing root file {}...", rootFile);
 		rootFile.deleteWithForceOption();
@@ -220,6 +234,28 @@ public class ConnectorIrodsSetupUtilities {
 						+ irodsFileName, avuData);
 			}
 		}
+
+	}
+
+	/**
+	 * Clear a collection under the modeshape root that can be used for files
+	 * generated within tests
+	 * 
+	 * @throws Exception
+	 */
+	private void initializeFilesCreatedInTestsPath() throws Exception {
+		String irodsTestPath = testingPropertiesHelper
+				.buildIRODSCollectionAbsolutePathFromTestProperties(
+						testingProperties, IRODS_TEST_SUBDIR_PATH + "/"
+								+ IRODS_TEST_SUBDIR_PATH + "/"
+								+ FILES_CREATED_IN_TESTS_PATH);
+
+		IRODSFile testFile = this.getIrodsFileSystem()
+				.getIRODSAccessObjectFactory()
+				.getIRODSFileFactory(getIrodsAccount())
+				.instanceIRODSFile(irodsTestPath);
+		testFile.deleteWithForceOption();
+		testFile.mkdirs();
 
 	}
 

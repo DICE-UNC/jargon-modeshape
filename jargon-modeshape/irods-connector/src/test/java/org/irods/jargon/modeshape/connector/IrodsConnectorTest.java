@@ -19,6 +19,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.irods.jargon.core.connection.IRODSAccount;
+import org.irods.jargon.core.pub.Stream2StreamAO;
+import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.unittest.ConnectorIrodsSetupUtilities;
 import org.irods.jargon.testutils.TestingPropertiesHelper;
 import org.junit.AfterClass;
@@ -27,7 +29,6 @@ import org.junit.Test;
 import org.modeshape.common.util.IoUtil;
 import org.modeshape.jcr.ModeShapeEngine;
 import org.modeshape.jcr.RepositoryConfiguration;
-import org.modeshape.jcr.api.Binary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,16 +137,75 @@ public class IrodsConnectorTest {
 								.absolutePathForProjectionRoot() + "/col1");
 		Node actual = session.getNode("/irodsGrid/col1");
 
-		// connectorIrodsSetupUtilities
-		// .idForProjectionRoot());
 		assertFolder(actual, rootFile);
 
 	}
 
-	protected void assertBinaryContains(final Binary binaryValue,
+	@Test
+	public void testFileInProjection() throws Exception {
+		File rootFile = (File) connectorIrodsSetupUtilities
+				.getIrodsFileSystem()
+				.getIRODSFileFactory(
+						connectorIrodsSetupUtilities.getIrodsAccount())
+				.instanceIRODSFile(
+						connectorIrodsSetupUtilities
+								.absolutePathForProjectionRoot()
+								+ "/col1/file1.txt");
+		Node actual = session.getNode("/irodsGrid/col1/file1.txt");
+
+		assertFile(actual, rootFile);
+
+	}
+
+	@Test
+	public void testFileInProjectionBinaryContent() throws Exception {
+		File rootFile = (File) connectorIrodsSetupUtilities
+				.getIrodsFileSystem()
+				.getIRODSFileFactory(
+						connectorIrodsSetupUtilities.getIrodsAccount())
+				.instanceIRODSFile(
+						connectorIrodsSetupUtilities
+								.absolutePathForProjectionRoot()
+								+ "/col1/subcol1/file0.txt");
+		Node actual = session.getNode("/irodsGrid/col1/subcol1/file0.txt");
+
+		assertFile(actual, rootFile);
+
+		dumpNodes(actual, 0);
+
+		Node node1Content = actual.getNode("jcr:content");
+
+		assertThat(node1Content.getName(), is("jcr:content"));
+		assertThat(node1Content.getPrimaryNodeType().getName(),
+				is("nt:resource"));
+
+		javax.jcr.Binary binary = node1Content.getProperty("jcr:data")
+				.getBinary();
+
+		Stream2StreamAO stream2stream = connectorIrodsSetupUtilities
+				.getIrodsFileSystem()
+				.getIRODSAccessObjectFactory()
+				.getStream2StreamAO(
+						connectorIrodsSetupUtilities.getIrodsAccount());
+
+		IRODSFile testFile = connectorIrodsSetupUtilities
+				.getIrodsFileSystem()
+				.getIRODSFileFactory(
+						connectorIrodsSetupUtilities.getIrodsAccount())
+				.instanceIRODSFile(
+						connectorIrodsSetupUtilities
+								.absolutePathForProjectionRoot()
+								+ "/col1/subcol1/file0.txt");
+
+		byte[] expected = stream2stream.streamFileToByte(testFile);
+		assertBinaryContains(binary, expected);
+
+	}
+
+	protected void assertBinaryContains(final javax.jcr.Binary binary,
 			final byte[] expectedContent) throws IOException,
 			RepositoryException {
-		byte[] actual = IoUtil.readBytes(binaryValue.getStream());
+		byte[] actual = IoUtil.readBytes(binary.getStream());
 		assertThat(actual, is(expectedContent));
 	}
 
