@@ -4,7 +4,6 @@
 package org.irods.jargon.modeshape.connector.nodetypes;
 
 import java.io.IOException;
-import java.net.URL;
 
 import javax.jcr.RepositoryException;
 
@@ -145,15 +144,10 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 		assert file != null;
 		log.info("file:{}", file);
 
-		URL content = null;
-		try {
-			content = this.getPathUtilities().createUrlForFile(file);
-		} catch (IOException e) {
-			log.error("IOException creating url from file", e);
-		}
 		return new IrodsBinaryValue(this.getPathUtilities().sha1(file), this
-				.getConnector().getSourceName(), content, file.length(),
-				file.getName(), this.getConnector().getMimeTypeDetector(),
+				.getConnector().getSourceName(), file.getAbsolutePath(),
+				file.length(), file.getName(), this.getConnector()
+						.getMimeTypeDetector(),
 				this.getIrodsAccessObjectFactory(), this.getIrodsAccount());
 	}
 

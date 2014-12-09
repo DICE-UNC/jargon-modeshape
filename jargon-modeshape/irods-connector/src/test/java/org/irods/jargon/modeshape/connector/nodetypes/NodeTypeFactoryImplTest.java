@@ -39,7 +39,7 @@ public class NodeTypeFactoryImplTest {
 		IRODSFileFactory irodsFileFactory = Mockito
 				.mock(IRODSFileFactory.class);
 		IRODSFile mockFile = Mockito.mock(IRODSFile.class);
-		File parentFile = (File) Mockito.mock(IRODSFileImpl.class);
+		File parentFile = Mockito.mock(IRODSFileImpl.class);
 		Mockito.when(parentFile.getAbsolutePath()).thenReturn(TEST_ROOT_DIR);
 		Mockito.when(mockFile.getParentFile()).thenReturn(parentFile);
 		Mockito.when(mockFile.getName()).thenReturn(testIdNoDelim);
@@ -59,10 +59,13 @@ public class NodeTypeFactoryImplTest {
 		InclusionExclusionFilenameFilter filter = Mockito
 				.mock(InclusionExclusionFilenameFilter.class);
 		Mockito.when(filter.accept(parentFile, testIdNoDelim)).thenReturn(true);
-		PathUtilities pathUtilities = new PathUtilities(TEST_ROOT_DIR, filter);
 
 		IrodsWriteableConnector irodsWriteableConnector = Mockito
 				.mock(IrodsWriteableConnector.class);
+
+		PathUtilities pathUtilities = new PathUtilities(TEST_ROOT_DIR, filter,
+				irodsWriteableConnector);
+
 		Mockito.when(irodsWriteableConnector.getPathUtilities()).thenReturn(
 				pathUtilities);
 		DocumentWriter documentWriter = Mockito.mock(DocumentWriter.class);
@@ -122,10 +125,13 @@ public class NodeTypeFactoryImplTest {
 				.thenReturn(irodsFileFactory);
 
 		Mockito.when(filter.accept(parentFile, testIdNoDelim)).thenReturn(true);
-		PathUtilities pathUtilities = new PathUtilities(TEST_ROOT_DIR, filter);
 
 		IrodsWriteableConnector irodsWriteableConnector = Mockito
 				.mock(IrodsWriteableConnector.class);
+
+		PathUtilities pathUtilities = new PathUtilities(TEST_ROOT_DIR, filter,
+				irodsWriteableConnector);
+
 		Mockito.when(irodsWriteableConnector.getPathUtilities()).thenReturn(
 				pathUtilities);
 		DocumentWriter documentWriter = Mockito.mock(DocumentWriter.class);
@@ -185,10 +191,11 @@ public class NodeTypeFactoryImplTest {
 		InclusionExclusionFilenameFilter filter = Mockito
 				.mock(InclusionExclusionFilenameFilter.class);
 		Mockito.when(filter.accept(parentFile, testIdNoDelim)).thenReturn(true);
-		PathUtilities pathUtilities = new PathUtilities(TEST_ROOT_DIR, filter);
-
 		IrodsWriteableConnector irodsWriteableConnector = Mockito
 				.mock(IrodsWriteableConnector.class);
+		PathUtilities pathUtilities = new PathUtilities(TEST_ROOT_DIR, filter,
+				irodsWriteableConnector);
+
 		Mockito.when(irodsWriteableConnector.getPathUtilities()).thenReturn(
 				pathUtilities);
 		DocumentWriter documentWriter = Mockito.mock(DocumentWriter.class);

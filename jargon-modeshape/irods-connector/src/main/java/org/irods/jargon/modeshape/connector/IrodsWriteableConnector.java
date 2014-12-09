@@ -76,6 +76,12 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	private String exclusionPattern;
 
 	/**
+	 * Configuration flag that can cause this connector to use the file contents
+	 * to create a sha1 hash
+	 */
+	private final boolean contentBasedSha1 = false;
+
+	/**
 	 * Configuration flag that can cause this connector to operare in read-only
 	 * mode if desired
 	 */
@@ -183,8 +189,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			throw new IllegalArgumentException("null id");
 		}
 		log.info("id:{}", id);
-
-		return null;
+		throw new UnsupportedOperationException("not supported yet");
 	}
 
 	@Override
@@ -194,14 +199,14 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			throw new IllegalArgumentException("null id");
 		}
 		log.info("id:{}", id);
-		return false;
+		throw new UnsupportedOperationException("not supported yet");
 	}
 
 	@Override
 	public String newDocumentId(String parentId, Name childId,
 			Name childPrimaryType) {
 		log.info("newDocumentId()");
-		return null;
+		throw new UnsupportedOperationException("not supported yet");
 	}
 
 	@Override
@@ -211,7 +216,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			throw new IllegalArgumentException("null id");
 		}
 		log.info("id:{}", id);
-		return false;
+		throw new UnsupportedOperationException("not supported yet");
 	}
 
 	@Override
@@ -220,6 +225,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		if (document == null) {
 			throw new IllegalArgumentException("null document");
 		}
+		throw new UnsupportedOperationException("not supported yet");
 
 	}
 
@@ -229,6 +235,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		if (documentChanges == null) {
 			throw new IllegalArgumentException("null documentChanges");
 		}
+		throw new UnsupportedOperationException("not supported yet");
+
 	}
 
 	/**
@@ -316,7 +324,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 				filenameFilter.setInclusionPattern(inclusionPattern);
 
 			this.pathUtilities = new PathUtilities(directoryPath,
-					filenameFilter);
+					filenameFilter, this);
 
 			log.info("initialized");
 		} finally {
@@ -325,11 +333,12 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	}
 
 	/**
-	 * FIXME: shim for authentication
+	 * FIXME: shim for authentication, add code to get from context with
+	 * pluggable auth
 	 * 
 	 * @return
 	 */
-	private IRODSAccount getIrodsAccount() {
+	public IRODSAccount getIrodsAccount() {
 		try {
 
 			IRODSAccount irodsAccount = IRODSAccount.instance(
@@ -431,6 +440,13 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		return new NodeTypeFactoryImpl(this.getIrodsFileSystem()
 				.getIRODSAccessObjectFactory(), irodsAccount, this);
 
+	}
+
+	/**
+	 * @return the contentBasedSha1
+	 */
+	public boolean isContentBasedSha1() {
+		return contentBasedSha1;
 	}
 
 }

@@ -9,9 +9,12 @@ import java.net.URL;
 
 import javax.jcr.NamespaceRegistry;
 
+import org.irods.jargon.core.pub.DataObjectAO;
+import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeAndId;
 import org.modeshape.common.util.SecureHash;
+import org.modeshape.common.util.StringUtil;
 import org.modeshape.connector.filesystem.FileSystemConnector;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 import org.modeshape.jcr.cache.DocumentStoreException;
@@ -75,6 +78,11 @@ public class PathUtilities {
 
 	private final InclusionExclusionFilenameFilter inclusionExclusionFilenameFilter;
 
+	/**
+	 * Connector associated with these path utilities
+	 */
+	private final IrodsWriteableConnector irodsWriteableConnector;
+
 	public static final Logger log = LoggerFactory
 			.getLogger(PathUtilities.class);
 
@@ -86,10 +94,13 @@ public class PathUtilities {
 	 *            <code>String</code> with the directory path
 	 * @param inclusionExclusionFilenameFilter
 	 *            {@link InclusinoExclusionFilenameFilter}
+	 * @param IrodsWriteableConnector
+	 *            connector {@link IrodsWriteableConnector}
 	 */
 	public PathUtilities(
 			final String directoryPath,
-			final InclusionExclusionFilenameFilter inclusionExclusionFilenameFilter) {
+			final InclusionExclusionFilenameFilter inclusionExclusionFilenameFilter,
+			final IrodsWriteableConnector irodsWriteableConnector) {
 		if (directoryPath == null || directoryPath.isEmpty()) {
 			throw new IllegalArgumentException("null or empty directoryPath");
 		}
@@ -99,12 +110,17 @@ public class PathUtilities {
 					"null or empty inclusionExclusionFilenameFilter");
 		}
 
+		if (irodsWriteableConnector == null) {
+			throw new IllegalArgumentException("null irodsWriteableConnector");
+		}
+
 		this.directoryPath = directoryPath;
 		this.inclusionExclusionFilenameFilter = inclusionExclusionFilenameFilter;
 
 		this.directoryPathWithTrailingSlash = directoryPath + "/";
 		this.directoryAbsolutePathLength = directoryPathWithTrailingSlash
 				.length() - DELIMITER.length();
+		this.irodsWriteableConnector = irodsWriteableConnector;
 	}
 
 	/**
@@ -342,7 +358,25 @@ public class PathUtilities {
 	 */
 	public String sha1(final IRODSFile file) {
 		try {
-			return SecureHash.sha1(createUrlForFile(file).toString());
+			if (irodsWriteableConnector.isContentBasedSha1()) {
+				log.info("content based SHA1, computing for {} ...",
+						file.getAbsolutePath());
+
+				DataObjectAO dataObjectAO = IRODSFileSystemSingletonWrapper
+						.instance()
+						.getIRODSAccessObjectFactory()
+						.getDataObjectAO(
+								irodsWriteableConnector.getIrodsAccount());
+
+				byte[] hash = dataObjectAO
+						.computeSHA1ChecksumOfIrodsFileByReadingDataFromStream(file
+								.getAbsolutePath());
+				return StringUtil.getHexString(hash);
+			} else {
+				log.info("file path based SHA1, computing for {} ...",
+						file.getAbsolutePath());
+				return SecureHash.sha1(createUrlForFile(file).toString());
+			}
 		} catch (Exception e) {
 			throw new ConnectorException(e);
 		}
@@ -367,6 +401,174 @@ public class PathUtilities {
 	 */
 	public URL createUrlForFile(final IRODSFile file) throws IOException {
 		return file.toFileBasedURL();
+	}
+
+	/**
+	 * @return the delimiter
+	 */
+	public static String getDelimiter() {
+		return DELIMITER;
+	}
+
+	/**
+	 * @return the mixMimeType
+	 */
+	public static String getMixMimeType() {
+		return MIX_MIME_TYPE;
+	}
+
+	/**
+	 * @return the jcrPrimaryType
+	 */
+	public static String getJcrPrimaryType() {
+		return JCR_PRIMARY_TYPE;
+	}
+
+	/**
+	 * @return the jcrData
+	 */
+	public static String getJcrData() {
+		return JCR_DATA;
+	}
+
+	/**
+	 * @return the jcrMimeType
+	 */
+	public static String getJcrMimeType() {
+		return JCR_MIME_TYPE;
+	}
+
+	/**
+	 * @return the jcrEncoding
+	 */
+	public static String getJcrEncoding() {
+		return JCR_ENCODING;
+	}
+
+	/**
+	 * @return the jcrCreated
+	 */
+	public static String getJcrCreated() {
+		return JCR_CREATED;
+	}
+
+	/**
+	 * @return the jcrCreatedBy
+	 */
+	public static String getJcrCreatedBy() {
+		return JCR_CREATED_BY;
+	}
+
+	/**
+	 * @return the jcrLastModified
+	 */
+	public static String getJcrLastModified() {
+		return JCR_LAST_MODIFIED;
+	}
+
+	/**
+	 * @return the jcrLastModifiedBy
+	 */
+	public static String getJcrLastModifiedBy() {
+		return JCR_LAST_MODIFIED_BY;
+	}
+
+	/**
+	 * @return the ntFolder
+	 */
+	public static String getNtFolder() {
+		return NT_FOLDER;
+	}
+
+	/**
+	 * @return the ntFile
+	 */
+	public static String getNtFile() {
+		return NT_FILE;
+	}
+
+	/**
+	 * @return the ntResource
+	 */
+	public static String getNtResource() {
+		return NT_RESOURCE;
+	}
+
+	/**
+	 * @return the jcrContent
+	 */
+	public static String getJcrContent() {
+		return JCR_CONTENT;
+	}
+
+	/**
+	 * @return the jcrContentSuffix
+	 */
+	public static String getJcrContentSuffix() {
+		return JCR_CONTENT_SUFFIX;
+	}
+
+	/**
+	 * @return the jcrIrodsIrodsobject
+	 */
+	public static String getJcrIrodsIrodsobject() {
+		return JCR_IRODS_IRODSOBJECT;
+	}
+
+	/**
+	 * @return the jcrIrodsAvuProp
+	 */
+	public static String getJcrIrodsAvuProp() {
+		return JCR_IRODS_AVU_PROP;
+	}
+
+	/**
+	 * @return the delimiterLength
+	 */
+	public static int getDelimiterLength() {
+		return DELIMITER_LENGTH;
+	}
+
+	/**
+	 * @return the jcrIrodsAvu
+	 */
+	public static String getJcrIrodsAvu() {
+		return JCR_IRODS_AVU;
+	}
+
+	/**
+	 * @return the jcrAvuSuffix
+	 */
+	public static String getJcrAvuSuffix() {
+		return JCR_AVU_SUFFIX;
+	}
+
+	/**
+	 * @return the jcrAvuSuffixLength
+	 */
+	public static int getJcrAvuSuffixLength() {
+		return JCR_AVU_SUFFIX_LENGTH;
+	}
+
+	/**
+	 * @return the jcrContentSuffixLength
+	 */
+	public static int getJcrContentSuffixLength() {
+		return JCR_CONTENT_SUFFIX_LENGTH;
+	}
+
+	/**
+	 * @return the avuId
+	 */
+	public static String getAvuId() {
+		return AVU_ID;
+	}
+
+	/**
+	 * @return the log
+	 */
+	public static Logger getLog() {
+		return log;
 	}
 
 }

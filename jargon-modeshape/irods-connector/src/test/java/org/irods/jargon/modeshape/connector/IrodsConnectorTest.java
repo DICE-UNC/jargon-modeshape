@@ -12,13 +12,15 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.Future;
 
+import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.pub.Stream2StreamAO;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.unittest.ConnectorIrodsSetupUtilities;
@@ -80,8 +82,7 @@ public class IrodsConnectorTest {
 
 		String repositoryName = config.getName();
 		log.info("repo name:{}", repositoryName);
-		IRODSAccount irodsAccount = testingPropertiesHelper
-				.buildIRODSAccountFromTestProperties(testingProperties);
+
 		session = repo.login("default");
 
 		// Get the root node ...
@@ -179,6 +180,8 @@ public class IrodsConnectorTest {
 		assertThat(node1Content.getPrimaryNodeType().getName(),
 				is("nt:resource"));
 
+		dumpProperties(node1Content);
+
 		javax.jcr.Binary binary = node1Content.getProperty("jcr:data")
 				.getBinary();
 
@@ -199,7 +202,25 @@ public class IrodsConnectorTest {
 
 		byte[] expected = stream2stream.streamFileToByte(testFile);
 		assertBinaryContains(binary, expected);
+	}
 
+	protected void dumpProperties(final Node node) throws Exception {
+		PropertyIterator iter = node.getProperties();
+		Property prop;
+		while (iter.hasNext()) {
+			prop = iter.nextProperty();
+			log.info("property");
+			log.info("name:{}", prop.getName());
+			log.info("path:{}", prop.getPath());
+			log.info("type:{}", prop.getType());
+			if (prop.getType() == 2) {
+				log.info("is binary!....");
+				Binary val = prop.getBinary();
+				log.info("class:{}", prop.getClass());
+				log.info("size:{}", val.getSize());
+				log.info("stream:{}", val.getStream());
+			}
+		}
 	}
 
 	protected void assertBinaryContains(final javax.jcr.Binary binary,

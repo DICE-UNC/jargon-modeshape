@@ -23,3 +23,17 @@ directory path:/fedZone1/home/test1
 directory : irods://test1@fedZone1:1247/fedZone1/home/test1
 directory absolute path : /fedZone1/home/test1/
 
+
+
+
+
+
+
+
+
+
+for download sources and build
+
+
+
+ mvn eclipse:eclipse  -DdownloadSources=true -DdownloadJavadocs=true

@@ -12,7 +12,9 @@ public class PathUtilitiesTest {
 		InclusionExclusionFilenameFilter filter = Mockito
 				.mock(InclusionExclusionFilenameFilter.class);
 		String dir = "/a/dir";
-		PathUtilities utilities = new PathUtilities(dir, filter);
+		IrodsWriteableConnector connector = Mockito
+				.mock(IrodsWriteableConnector.class);
+		PathUtilities utilities = new PathUtilities(dir, filter, connector);
 		String testId = "/col1/file613.txt/jcr:content";
 		IrodsNodeTypes actual = utilities.getNodeTypeForId(testId);
 		Assert.assertEquals(IrodsNodeTypes.CONTENT_NODE, actual);

@@ -30,8 +30,6 @@
 		<dependency>
 			<groupId>org.modeshape</groupId>
 			<artifactId>modeshape-jcr</artifactId>
-			<type>test-jar</type>
-            <scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.modeshape</groupId>
@@ -40,13 +38,8 @@
 		<dependency>
 			<groupId>org.modeshape</groupId>
 			<artifactId>modeshape-common</artifactId>
-			<type>test-jar</type>
-            <scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.modeshape</groupId>
-			<artifactId>modeshape-unit-test</artifactId>
-		</dependency>
+		
 		<dependency>
 			<groupId>org.irods.jargon</groupId>
 			<artifactId>jargon-core</artifactId>
@@ -59,8 +52,7 @@
 		<dependency>
 			<groupId>org.infinispan</groupId>
 			<artifactId>infinispan-core</artifactId>
-			<type>test-jar</type>
-			<scope>test</scope>
+		
 		</dependency>
 
 
