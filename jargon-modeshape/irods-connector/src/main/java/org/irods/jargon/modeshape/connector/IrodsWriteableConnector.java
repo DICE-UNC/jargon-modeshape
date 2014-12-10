@@ -21,6 +21,7 @@ import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
 import org.irods.jargon.modeshape.connector.nodetypes.FileFromIdConverter;
 import org.irods.jargon.modeshape.connector.nodetypes.FileFromIdConverterImpl;
+import org.irods.jargon.modeshape.connector.nodetypes.IrodsBinaryValue;
 import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactory;
 import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactoryImpl;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
@@ -32,6 +33,7 @@ import org.modeshape.jcr.spi.federation.Pageable;
 import org.modeshape.jcr.spi.federation.WritableConnector;
 import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.ValueFactories;
+import org.modeshape.jcr.value.binary.ExternalBinaryValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -447,6 +449,43 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 */
 	public boolean isContentBasedSha1() {
 		return contentBasedSha1;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.spi.federation.Connector#getBinaryValue(java.lang.String
+	 * )
+	 */
+
+	@Override
+	public ExternalBinaryValue getBinaryValue(final String id) {
+
+		log.info("getBinaryValue()");
+		if (id == null || id.isEmpty()) {
+			throw new IllegalArgumentException("null or empty id");
+		}
+
+		log.info("id:{}", id);
+
+		try {
+
+			IRODSFile file = this.getIrodsFileSystem()
+					.getIRODSAccessObjectFactory()
+					.getIRODSFileFactory(getIrodsAccount())
+					.instanceIRODSFile(id);
+
+			return new IrodsBinaryValue(this.getPathUtilities().sha1(file),
+					getSourceName(), file.getAbsolutePath(), file.length(),
+					file.getName(), this.getMimeTypeDetector(),
+					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
+					this.getIrodsAccount());
+
+		} catch (JargonException e) {
+			log.error("jargon error getting file from id", e);
+			throw new JargonRuntimeException(e);
+		}
 	}
 
 }
