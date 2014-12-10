@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
@@ -191,7 +192,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			throw new IllegalArgumentException("null id");
 		}
 		log.info("id:{}", id);
-		throw new UnsupportedOperationException("not supported yet");
+		// this connector treats the ID as the path
+		return Collections.singletonList(id);
 	}
 
 	@Override
@@ -201,26 +203,94 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			throw new IllegalArgumentException("null id");
 		}
 		log.info("id:{}", id);
-		throw new UnsupportedOperationException("not supported yet");
+
+		try {
+			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
+					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
+					this.getIrodsAccount(), this.pathUtilities);
+			return fileFromIdConverter.fileFor(id).exists();
+		} catch (JargonException e) {
+			log.error("jargon error getting file from id", e);
+			throw new JargonRuntimeException(e);
+		}
+
 	}
 
 	@Override
-	public String newDocumentId(String parentId, Name childId,
-			Name childPrimaryType) {
+	public String newDocumentId(final String parentId,
+			final Name newDocumentName, final Name newDocumentPrimaryType) {
 		log.info("newDocumentId()");
-		throw new UnsupportedOperationException("not supported yet");
+		StringBuilder id = new StringBuilder(parentId);
+		if (!parentId.endsWith(PathUtilities.DELIMITER)) {
+			id.append(PathUtilities.DELIMITER);
+		}
+
+		// We're only using the name to check, which can be a bit dangerous if
+		// users don't follow the JCR conventions.
+		// However, it matches what "isContentNode(...)" does.
+		String childNameStr = getContext().getValueFactories()
+				.getStringFactory().create(newDocumentName);
+		if (PathUtilities.JCR_CONTENT.equals(childNameStr)) {
+			// This is for the "jcr:content" node underneath a file node. Since
+			// this doesn't actually result in a file or folder
+			// on the file system (it's merged into the file for the parent
+			// 'nt:file' node), we'll keep the "jcr" namespace
+			// prefix in the ID so that 'isContentNode(...)' works properly ...
+			id.append(childNameStr);
+		} else {
+			// File systems don't universally deal well with ':' in the names,
+			// and when they do it can be a bit awkward. Since we
+			// don't often expect the node NAMES to contain namespaces (at leat
+			// with this connector), we'll just
+			// use the local part for the ID ...
+			id.append(newDocumentName.getLocalName());
+		}
+		return id.toString();
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.spi.federation.Connector#removeDocument(java.lang.String
+	 * )
+	 */
 	@Override
 	public boolean removeDocument(String id) {
 		log.info("removeDocument()");
 		if (id == null) {
 			throw new IllegalArgumentException("null id");
 		}
-		log.info("id:{}", id);
-		throw new UnsupportedOperationException("not supported yet");
+		try {
+			log.info("id:{}", id);
+			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
+					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
+					this.getIrodsAccount(), this.pathUtilities);
+			IRODSFile file = fileFromIdConverter.fileFor(id);
+			checkFileNotExcluded(id, (File) file);
+			// Remove the extra properties at the old location ...
+			extraPropertiesStore().removeProperties(id);
+			// Now remove the file (if it is there) ...
+			if (!file.exists()) {
+				return false;
+			}
+
+			IRODSFile irodsFile = file;
+			irodsFile.delete();
+			return true;
+		} catch (JargonException e) {
+			log.error("error deleting file with id:{}", id, e);
+			throw new DocumentStoreException(id, "Error deleting file");
+		}
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.spi.federation.Connector#storeDocument(org.infinispan
+	 * .schematic.document.Document)
+	 */
 	@Override
 	public void storeDocument(Document document) {
 		log.info("storeDocument()");
@@ -441,7 +511,6 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 		return new NodeTypeFactoryImpl(this.getIrodsFileSystem()
 				.getIRODSAccessObjectFactory(), irodsAccount, this);
-
 	}
 
 	/**
@@ -486,6 +555,22 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			log.error("jargon error getting file from id", e);
 			throw new JargonRuntimeException(e);
 		}
+	}
+
+	protected void checkFileNotExcluded(final String id, final File file) {
+		boolean isExcluded = !filenameFilter.accept(file.getParentFile(),
+				file.getName());
+		if (isExcluded) {
+			log.error("file is excluded:{}", file);
+			throw new DocumentStoreException(id, "file is excluded");
+		}
+	}
+
+	/**
+	 * @return the filenameFilter
+	 */
+	public InclusionExclusionFilenameFilter getFilenameFilter() {
+		return filenameFilter;
 	}
 
 }

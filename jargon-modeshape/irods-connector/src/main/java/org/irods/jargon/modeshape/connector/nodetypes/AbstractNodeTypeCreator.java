@@ -3,6 +3,8 @@
  */
 package org.irods.jargon.modeshape.connector.nodetypes;
 
+import java.io.File;
+
 import javax.jcr.RepositoryException;
 
 import org.infinispan.schematic.document.Document;
@@ -11,6 +13,7 @@ import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.service.AbstractJargonService;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
+import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
 import org.modeshape.jcr.value.ValueFactories;
 import org.slf4j.Logger;
@@ -140,6 +143,25 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 */
 	protected IrodsWriteableConnector getConnector() {
 		return connector;
+	}
+
+	public void store(final DocumentReader documentReader) {
+		log.info("store()");
+		if (documentReader == null) {
+			throw new IllegalArgumentException("null documentReader");
+		}
+
+	}
+
+	/**
+	 * Handy method to check for exclusions by the file name filter
+	 * 
+	 * @param file
+	 * @return
+	 */
+	protected boolean isExcluded(final File file) {
+		return !this.getConnector().getFilenameFilter()
+				.accept(file.getParentFile(), file.getName());
 	}
 
 }

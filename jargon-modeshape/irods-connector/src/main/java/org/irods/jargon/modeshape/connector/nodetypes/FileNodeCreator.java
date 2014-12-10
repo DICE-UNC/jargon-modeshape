@@ -5,6 +5,7 @@ package org.irods.jargon.modeshape.connector.nodetypes;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
@@ -21,8 +22,14 @@ import org.irods.jargon.core.query.JargonQueryException;
 import org.irods.jargon.core.query.MetaDataAndDomainData;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
+import org.irods.jargon.modeshape.connector.exceptions.IrodsConnectorRuntimeException;
+import org.modeshape.jcr.JcrI18n;
 import org.modeshape.jcr.cache.DocumentStoreException;
+import org.modeshape.jcr.spi.federation.Connector.ExtraProperties;
+import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
+import org.modeshape.jcr.value.Name;
+import org.modeshape.jcr.value.Property;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -305,5 +312,66 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			log.info("avu childId:{}", childId);
 			writer.addChild(childId, childName);
 		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.irods.jargon.modeshape.connector.nodetypes.AbstractNodeTypeCreator
+	 * #store(org.modeshape.jcr.spi.federation.DocumentReader)
+	 */
+	@Override
+	public void store(DocumentReader documentReader) {
+		log.info("store()");
+		if (documentReader == null) {
+			throw new IllegalArgumentException("null documentReader");
+		}
+
+		String primaryType = documentReader.getPrimaryTypeName();
+		log.info("primaryType:{}", primaryType);
+		if (PathUtilities.NT_FILE.equals(primaryType)) {
+			log.info("its a file");
+			storeFile(documentReader);
+		} else if (PathUtilities.NT_FOLDER.equals(primaryType)) {
+			log.info("its a folder");
+			storeFolder(documentReader);
+		} else {
+			log.error("invalid node type for this operation:{}", primaryType);
+			throw new IrodsConnectorRuntimeException(
+					"primaryType not supported by this NodeCreator");
+		}
+
+	}
+
+	private void storeFolder(DocumentReader documentReader) {
+		log.info("storeFolder");
+		String id = documentReader.getDocumentId();
+		File file = fileFor(id, false);
+		if (this.isExcluded(file)) {
+			throw new DocumentStoreException(id, "file is excluded");
+		}
+		File parent = file.getParentFile();
+		if (!parent.exists()) {
+			parent.mkdirs();
+		}
+		if (!parent.canWrite()) {
+			String parentPath = parent.getAbsolutePath();
+			String msg = JcrI18n.fileConnectorCannotWriteToDirectory.text(
+					getSourceName(), getClass(), parentPath);
+			throw new DocumentStoreException(id, msg);
+		}
+		String primaryType = reader.getPrimaryTypeName();
+
+		Map<Name, Property> properties = reader.getProperties();
+		ExtraProperties extraProperties = extraPropertiesFor(id, false);
+		extraProperties.addAll(properties).except(JCR_PRIMARY_TYPE,
+				JCR_CREATED, JCR_LAST_MODIFIED, JCR_DATA);
+
+	}
+
+	private void storeFile(DocumentReader documentReader) {
+		// TODO Auto-generated method stub
+
 	}
 }
