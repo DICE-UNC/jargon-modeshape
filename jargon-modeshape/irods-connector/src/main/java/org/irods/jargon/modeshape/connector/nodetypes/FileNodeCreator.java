@@ -4,6 +4,7 @@
 package org.irods.jargon.modeshape.connector.nodetypes;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +24,6 @@ import org.irods.jargon.core.query.MetaDataAndDomainData;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.irods.jargon.modeshape.connector.exceptions.IrodsConnectorRuntimeException;
-import org.modeshape.jcr.JcrI18n;
 import org.modeshape.jcr.cache.DocumentStoreException;
 import org.modeshape.jcr.spi.federation.Connector.ExtraProperties;
 import org.modeshape.jcr.spi.federation.DocumentReader;
@@ -347,8 +347,18 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	private void storeFolder(DocumentReader documentReader) {
 		log.info("storeFolder");
 		String id = documentReader.getDocumentId();
-		File file = fileFor(id, false);
-		if (this.isExcluded(file)) {
+		log.info("file to store:{}", id);
+		FileFromIdConverter converter = new FileFromIdConverterImpl(
+				this.getIrodsAccessObjectFactory(), this.getIrodsAccount(),
+				this.getPathUtilities());
+		IRODSFile file;
+		try {
+			file = converter.fileFor(id);
+		} catch (JargonException e) {
+			log.error("jargonException getting file for storing folder", e);
+			throw new DocumentStoreException(id, "unable to get file for store");
+		}
+		if (this.isExcluded((File) file)) {
 			throw new DocumentStoreException(id, "file is excluded");
 		}
 		File parent = file.getParentFile();
@@ -356,22 +366,62 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			parent.mkdirs();
 		}
 		if (!parent.canWrite()) {
-			String parentPath = parent.getAbsolutePath();
-			String msg = JcrI18n.fileConnectorCannotWriteToDirectory.text(
-					getSourceName(), getClass(), parentPath);
-			throw new DocumentStoreException(id, msg);
+			throw new DocumentStoreException(id,
+					"unable to write to parent file");
 		}
-		String primaryType = reader.getPrimaryTypeName();
 
-		Map<Name, Property> properties = reader.getProperties();
-		ExtraProperties extraProperties = extraPropertiesFor(id, false);
-		extraProperties.addAll(properties).except(JCR_PRIMARY_TYPE,
-				JCR_CREATED, JCR_LAST_MODIFIED, JCR_DATA);
+		file.mkdirs();
+
+		Map<Name, Property> properties = documentReader.getProperties();
+		ExtraProperties extraProperties = this.getConnector()
+				.retrieveExtraPropertiesForId(id, false);
+		extraProperties.addAll(properties).except(
+				PathUtilities.JCR_PRIMARY_TYPE, PathUtilities.JCR_CREATED,
+				PathUtilities.JCR_LAST_MODIFIED, PathUtilities.JCR_DATA);
+		extraProperties.save();
 
 	}
 
 	private void storeFile(DocumentReader documentReader) {
-		// TODO Auto-generated method stub
+		log.info("storeFile");
+		String id = documentReader.getDocumentId();
+		log.info("file to store:{}", id);
+		FileFromIdConverter converter = new FileFromIdConverterImpl(
+				this.getIrodsAccessObjectFactory(), this.getIrodsAccount(),
+				this.getPathUtilities());
+		IRODSFile file;
+		try {
+			file = converter.fileFor(id);
+		} catch (JargonException e) {
+			log.error("jargonException getting file for storing folder", e);
+			throw new DocumentStoreException(id, "unable to get file for store");
+		}
+		if (this.isExcluded((File) file)) {
+			throw new DocumentStoreException(id, "file is excluded");
+		}
+		File parent = file.getParentFile();
+		if (!parent.exists()) {
+			parent.mkdirs();
+		}
+		if (!parent.canWrite()) {
+			throw new DocumentStoreException(id,
+					"unable to write to parent file");
+		}
+
+		try {
+			file.createNewFile();
+		} catch (IOException e) {
+			log.error("IOexception creating new file:{}", file, e);
+			throw new DocumentStoreException(id, "exception creating new file",
+					e);
+		}
+		Map<Name, Property> properties = documentReader.getProperties();
+		ExtraProperties extraProperties = this.getConnector()
+				.retrieveExtraPropertiesForId(id, false);
+		extraProperties.addAll(properties).except(
+				PathUtilities.JCR_PRIMARY_TYPE, PathUtilities.JCR_CREATED,
+				PathUtilities.JCR_LAST_MODIFIED, PathUtilities.JCR_DATA);
+		extraProperties.save();
 
 	}
 }

@@ -557,6 +557,16 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		}
 	}
 
+	/**
+	 * Wrapper to allow cooperating objects to ref extra properties {@link
+	 * Controller.extraPropertiesFor(String, boolean)}
+	 * 
+	 */
+	public ExtraProperties retrieveExtraPropertiesForId(final String id,
+			final boolean update) {
+		return this.extraPropertiesFor(id, update);
+	}
+
 	protected void checkFileNotExcluded(final String id, final File file) {
 		boolean isExcluded = !filenameFilter.accept(file.getParentFile(),
 				file.getName());

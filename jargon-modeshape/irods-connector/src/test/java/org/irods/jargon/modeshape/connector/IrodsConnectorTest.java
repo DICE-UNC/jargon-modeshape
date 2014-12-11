@@ -21,6 +21,7 @@ import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.pub.Stream2StreamAO;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.unittest.ConnectorIrodsSetupUtilities;
@@ -202,6 +203,22 @@ public class IrodsConnectorTest {
 
 		byte[] expected = stream2stream.streamFileToByte(testFile);
 		assertBinaryContains(binary, expected);
+	}
+
+	@Test
+	public void storeDocumentFile() throws Exception {
+		String testFileName = "storeDocumentFile.txt";
+		IRODSAccount irodsAccount = testingPropertiesHelper
+				.buildIRODSAccountFromTestProperties(testingProperties);
+
+		Node parentNode = session.getNode(connectorIrodsSetupUtilities
+				.absolutePathForProjectionRoot()
+				+ "/"
+				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH);
+
+		// Create an 'nt:file' node at the supplied path ...
+		Node fileNode = parentNode.addNode(testFileName, "nt:file");
+		session.save();
 	}
 
 	protected void dumpProperties(final Node node) throws Exception {
