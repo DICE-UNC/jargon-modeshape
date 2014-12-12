@@ -29,9 +29,11 @@ import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactory;
 import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactoryImpl;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 import org.modeshape.jcr.cache.DocumentStoreException;
+import org.modeshape.jcr.spi.federation.Connector;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
+import org.modeshape.jcr.spi.federation.ExtraPropertiesStore;
 import org.modeshape.jcr.spi.federation.PageKey;
 import org.modeshape.jcr.spi.federation.Pageable;
 import org.modeshape.jcr.spi.federation.WritableConnector;
@@ -318,13 +320,36 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.modeshape.jcr.spi.federation.Connector#updateDocument(org.modeshape
+	 * .jcr.spi.federation.DocumentChanges)
+	 */
 	@Override
 	public void updateDocument(DocumentChanges documentChanges) {
 		log.info("updateDocument()");
 		if (documentChanges == null) {
 			throw new IllegalArgumentException("null documentChanges");
 		}
-		throw new UnsupportedOperationException("not supported yet");
+
+		AbstractNodeTypeCreator nodeCreator;
+		try {
+			nodeCreator = instanceNodeTypeFactory(getIrodsAccount())
+					.instanceCreatorForDocumentChanges(documentChanges);
+		} catch (UnknownNodeTypeException e) {
+			log.error("unknown node type, cannot update", e);
+			throw new IrodsConnectorRuntimeException(e);
+		} catch (RepositoryException e) {
+			log.error("update failed with repository exception", e);
+			throw new IrodsConnectorRuntimeException(e);
+		} catch (JargonException e) {
+			log.error("update failed with jargon exception", e);
+			throw new IrodsConnectorRuntimeException(e);
+		}
+		nodeCreator.update(documentChanges);
+		log.info("updateSuccessful");
 
 	}
 
@@ -582,6 +607,16 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	public ExtraProperties retrieveExtraPropertiesForId(final String id,
 			final boolean update) {
 		return this.extraPropertiesFor(id, update);
+	}
+
+	/**
+	 * Delegate to {@link Connector.extraPropertiesStore} for various node type
+	 * handlers
+	 * 
+	 * @return
+	 */
+	public ExtraPropertiesStore retrieveExtraPropertiesStore() {
+		return this.extraPropertiesStore();
 	}
 
 	protected void checkFileNotExcluded(final String id, final File file) {

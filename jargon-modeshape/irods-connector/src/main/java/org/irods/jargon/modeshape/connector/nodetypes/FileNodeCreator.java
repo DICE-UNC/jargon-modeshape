@@ -3,8 +3,10 @@
  */
 package org.irods.jargon.modeshape.connector.nodetypes;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -14,20 +16,26 @@ import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.FileNotFoundException;
 import org.irods.jargon.core.exception.JargonException;
+import org.irods.jargon.core.exception.NoResourceDefinedException;
 import org.irods.jargon.core.pub.CollectionAO;
 import org.irods.jargon.core.pub.DataObjectAO;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
 import org.irods.jargon.core.pub.io.IRODSFile;
+import org.irods.jargon.core.pub.io.IRODSFileImpl;
 import org.irods.jargon.core.query.JargonQueryException;
 import org.irods.jargon.core.query.MetaDataAndDomainData;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.irods.jargon.modeshape.connector.exceptions.IrodsConnectorRuntimeException;
+import org.modeshape.common.util.IoUtil;
+import org.modeshape.jcr.JcrLexicon;
 import org.modeshape.jcr.cache.DocumentStoreException;
 import org.modeshape.jcr.spi.federation.Connector.ExtraProperties;
+import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
+import org.modeshape.jcr.value.BinaryValue;
 import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.Property;
 import org.slf4j.Logger;
@@ -426,5 +434,219 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 				PathUtilities.JCR_LAST_MODIFIED, PathUtilities.JCR_DATA);
 		extraProperties.save();
 
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.irods.jargon.modeshape.connector.nodetypes.AbstractNodeTypeCreator
+	 * #update(org.modeshape.jcr.spi.federation.DocumentChanges)
+	 */
+	@Override
+	public void update(DocumentChanges documentChanges) {
+		log.info("update()");
+		if (documentChanges == null) {
+			throw new IllegalArgumentException("null documentchanges");
+		}
+
+		String id = documentChanges.getDocumentId();
+		log.info("id for doc changes:{}", id);
+		Document document = documentChanges.getDocument();
+		FileFromIdConverter converter = new FileFromIdConverterImpl(
+				this.getIrodsAccessObjectFactory(), this.getIrodsAccount(),
+				this.getPathUtilities());
+		IRODSFile file;
+		try {
+			file = converter.fileFor(id);
+		} catch (JargonException e) {
+			log.error("jargonException getting file for storing folder", e);
+			throw new DocumentStoreException(id, "unable to get file for store");
+		}
+		if (this.isExcluded((File) file)) {
+			throw new DocumentStoreException(id, "file is excluded");
+		}
+		DocumentReader documentReader = this.getConnector()
+				.produceDocumentReaderFromDocument(document);
+		log.info("file for id:{}", file);
+		String idOrig = id;
+
+		// if we're dealing with the root of the connector, we can't process
+		// any
+		// moves/removes because that would go "outside" the
+		// connector scope
+		if (!PathUtilities.isRoot(id)) {
+
+			log.info("not root....");
+
+			String parentId = documentReader.getParentIds().get(0);
+			log.info("parent id:{}", parentId);
+			File parent = file.getParentFile();
+			log.info("parent:{}", parent);
+			String newParentId = this.getPathUtilities().idFor(
+					(IRODSFile) parent);
+			log.info("new parentId:{}", newParentId);
+
+			if (!parentId.equals(newParentId)) {
+				// The node has a new parent (via the 'update' method),
+				// meaning
+				// it was moved ...
+
+				log.info("node was moved...");
+
+				IRODSFileImpl newParent;
+				try {
+					newParent = (IRODSFileImpl) converter.fileFor(parentId);
+				} catch (JargonException e) {
+					log.error(
+							"jargon exception attempting to to create new parent file",
+							e);
+					throw new DocumentStoreException(id,
+							"unable to create newParent");
+				}
+				log.info("file for new parent:{}", newParent);
+
+				IRODSFile newFile;
+				try {
+					newFile = this.getIrodsAccessObjectFactory()
+							.getIRODSFileFactory(getIrodsAccount())
+							.instanceIRODSFile(newParent, file.getName());
+
+					log.info("new file:{}", newFile);
+
+				} catch (JargonException e) {
+					log.error("jargon error getting newFile", e);
+					throw new DocumentStoreException(id, e);
+
+				}
+
+				log.info("renaming....");
+				file.renameTo(newFile);
+				log.info("rename done to :{}", newFile);
+
+				if (!parent.exists()) {
+					parent.mkdirs(); // in case they were removed since we
+										// created them ...
+				}
+				if (!parent.canWrite()) {
+					log.error("parent does not allow write");
+					throw new DocumentStoreException(id,
+							"parent does not allow write");
+				}
+				parent = newParent;
+				// Remove the extra properties at the old location ...
+				this.getConnector().retrieveExtraPropertiesStore()
+						.removeProperties(id);
+				// Set the id to the new location ...
+				id = this.getPathUtilities().idFor(newFile);
+			} else {
+				// It is the same parent as before ...
+				if (!parent.exists()) {
+					parent.mkdirs(); // in case they were removed since we
+										// created them ...
+				}
+				if (!parent.canWrite()) {
+					log.error("cannot write this filef for parent:{}", parent);
+					throw new DocumentStoreException(id,
+							"unable to write file due to permissions");
+				}
+			}
+		}
+
+		log.info("processing children renames...");
+
+		// children renames have to be processed in the parent
+		DocumentChanges.ChildrenChanges childrenChanges = documentChanges
+				.getChildrenChanges();
+		Map<String, Name> renamedChildren = childrenChanges.getRenamed();
+		for (String renamedChildId : renamedChildren.keySet()) {
+
+			renameChildrenFiles(id, file, renamedChildren, renamedChildId);
+		}
+
+		String primaryType = documentReader.getPrimaryTypeName();
+		Map<Name, Property> properties = documentReader.getProperties();
+		id = idOrig;
+		ExtraProperties extraProperties = this.getConnector()
+				.retrieveExtraPropertiesForId(id, true);
+		extraProperties.addAll(properties).except(
+				PathUtilities.JCR_PRIMARY_TYPE, PathUtilities.JCR_CREATED,
+				PathUtilities.JCR_LAST_MODIFIED, PathUtilities.JCR_DATA);
+		try {
+			if (PathUtilities.NT_FILE.equals(primaryType)) {
+				file.createNewFile();
+			} else if (PathUtilities.NT_FOLDER.equals(primaryType)) {
+				file.mkdir();
+			} else if (this.getPathUtilities().isContentNode(id)) {
+				Property content = documentReader
+						.getProperty(PathUtilities.JCR_DATA);
+				BinaryValue binary = factories().getBinaryFactory().create(
+						content.getFirstValue());
+				IRODSFile irodsFile = file;
+
+				OutputStream ostream;
+				try {
+					ostream = new BufferedOutputStream(
+							IRODSFileSystemSingletonWrapper
+									.instance()
+									.getIRODSAccessObjectFactory()
+									.getIRODSFileFactory(getIrodsAccount())
+									.instanceSessionClosingIRODSFileOutputStream(
+											irodsFile));
+				} catch (NoResourceDefinedException e) {
+					throw new DocumentStoreException(id, e);
+				} catch (JargonException e) {
+					throw new DocumentStoreException(id, e);
+				}
+				IoUtil.write(binary.getStream(), ostream);
+				if (!PathUtilities.NT_RESOURCE.equals(primaryType)) {
+					// This is the "jcr:content" child, but the primary type
+					// is
+					// non-standard so record it as an extra property
+					extraProperties
+							.add(properties.get(JcrLexicon.PRIMARY_TYPE));
+				}
+			}
+			extraProperties.save();
+		} catch (RepositoryException e) {
+			throw new DocumentStoreException(id, e);
+		} catch (IOException e) {
+			throw new DocumentStoreException(id, e);
+		}
+
+	}
+
+	private IRODSFile renameChildrenFiles(String id, IRODSFile file,
+			Map<String, Name> renamedChildren, String renamedChildId) {
+		log.info("renamed child id:{}", renamedChildId);
+
+		FileFromIdConverter converter = new FileFromIdConverterImpl(
+				this.getIrodsAccessObjectFactory(), this.getIrodsAccount(),
+				this.getPathUtilities());
+		IRODSFile child;
+		try {
+			child = converter.fileFor(id);
+		} catch (JargonException e) {
+			log.error("jargonException getting file for storing folder", e);
+			throw new DocumentStoreException(id, "unable to get file for store");
+		}
+		log.info("child:{}", child);
+		Name newName = renamedChildren.get(renamedChildId);
+		String newNameStr = this.getConnector().obtainHandleToFactories()
+				.getStringFactory().create(newName);
+		IRODSFile renamedChild;
+		try {
+			renamedChild = this.getIrodsAccessObjectFactory()
+					.getIRODSFileFactory(getIrodsAccount())
+					.instanceIRODSFile((File) file, newNameStr);
+			log.info("renamedChild:{}", renamedChild);
+		} catch (JargonException e) {
+			throw new DocumentStoreException(id, e);
+		}
+
+		if (!child.renameTo(renamedChild)) {
+			log.error("cannot rename child:{}", renamedChild);
+		}
+		return renamedChild;
 	}
 }

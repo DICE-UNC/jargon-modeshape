@@ -13,6 +13,7 @@ import org.irods.jargon.modeshape.connector.IrodsNodeTypes;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
+import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,4 +145,27 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 		}
 
 	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactory#
+	 * instanceCreatorForDocumentChanges
+	 * (org.modeshape.jcr.spi.federation.DocumentChanges)
+	 */
+	@Override
+	public AbstractNodeTypeCreator instanceCreatorForDocumentChanges(
+			DocumentChanges documentChanges) throws UnknownNodeTypeException,
+			RepositoryException {
+
+		log.info("instanceCreatorForDocumentChanges()");
+
+		if (documentChanges == null) {
+			throw new IllegalArgumentException("documentChanges is null");
+		}
+
+		Document document = documentChanges.getDocument();
+		return instanceCreatorForDocument(document);
+	}
+
 }

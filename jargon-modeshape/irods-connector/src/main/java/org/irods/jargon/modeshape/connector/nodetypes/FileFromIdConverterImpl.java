@@ -76,10 +76,6 @@ public class FileFromIdConverterImpl extends AbstractJargonService implements
 				.getIRODSFileFactory(getIrodsAccount())
 				.instanceIRODSFile(parentPath, strippedId);
 
-		if (!file.exists()) {
-			throw new JargonException("file does not exist!");
-		}
-
 		return file;
 	}
 

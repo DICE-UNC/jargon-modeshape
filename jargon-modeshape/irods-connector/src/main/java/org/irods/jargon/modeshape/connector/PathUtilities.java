@@ -565,10 +565,33 @@ public class PathUtilities {
 	}
 
 	/**
-	 * @return the log
+	 * Utility method for determining if the supplied identifier is for the
+	 * "jcr:content" child node of a file. * Subclasses may override this method
+	 * to change the format of the identifiers, but in that case should also
+	 * override the {@link #fileFor(String)}, {@link #isRoot(String)}, and
+	 * {@link #idFor(File)} methods.
+	 * 
+	 * @param id
+	 *            the identifier; may not be null
+	 * @return true if the identifier signals the "jcr:content" child node of a
+	 *         file, or false otherwise
+	 * @see #isRoot(String)
+	 * @see #fileFor(String)
+	 * @see #idFor(File)
 	 */
-	public static Logger getLog() {
-		return log;
+	public boolean isContentNode(final String id) {
+		return id.endsWith(JCR_CONTENT_SUFFIX);
+	}
+
+	/**
+	 * Utility method to determine if the given id is of type AVU node
+	 * 
+	 * @param id
+	 *            <code>String</code> the identifier; may not be null
+	 * @return
+	 */
+	public boolean isAvuNode(final String id) {
+		return id.endsWith(JCR_AVU_SUFFIX);
 	}
 
 }

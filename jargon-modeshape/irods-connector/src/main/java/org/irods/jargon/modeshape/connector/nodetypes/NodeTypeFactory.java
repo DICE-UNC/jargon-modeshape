@@ -5,6 +5,7 @@ import javax.jcr.RepositoryException;
 import org.infinispan.schematic.document.Document;
 import org.irods.jargon.modeshape.connector.IrodsNodeTypes;
 import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
+import org.modeshape.jcr.spi.federation.DocumentChanges;
 
 /**
  * Interface for a factory to return a Modeshape {@link Document} based on its
@@ -43,5 +44,20 @@ public interface NodeTypeFactory {
 	 */
 	public abstract AbstractNodeTypeCreator instanceCreatorForDocument(
 			final Document document) throws UnknownNodeTypeException,
+			RepositoryException;
+
+	/**
+	 * Given a set of <code>DocumentChanges</code> locate the correct node type
+	 * creator to process those changes
+	 * 
+	 * @param documentChanges
+	 *            {@link DocumentChanges}
+	 * @return {@link AbstractNodeTypeCreator} that can process the document
+	 *         changes for the given document type
+	 * @throws UnknownNodeTypeException
+	 * @throws RepositoryException
+	 */
+	public abstract AbstractNodeTypeCreator instanceCreatorForDocumentChanges(
+			DocumentChanges documentChanges) throws UnknownNodeTypeException,
 			RepositoryException;
 }
