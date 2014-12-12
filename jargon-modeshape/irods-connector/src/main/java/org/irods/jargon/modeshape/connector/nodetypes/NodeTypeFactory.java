@@ -30,4 +30,18 @@ public interface NodeTypeFactory {
 	public abstract Document instanceForId(final String id, final int offset)
 			throws UnknownNodeTypeException, RepositoryException;
 
+	/**
+	 * Given a document, return the associated creator. This is used for various
+	 * functions such as storing a given Document
+	 * 
+	 * @param document
+	 * @link Document} for which the associated creator will found
+	 * @return {@link AbstarctNodeTypeCreator} that supports extended operations
+	 *         on the given document
+	 * @throws UnknownNodeTypeException
+	 * @throws RepositoryException
+	 */
+	public abstract AbstractNodeTypeCreator instanceCreatorForDocument(
+			final Document document) throws UnknownNodeTypeException,
+			RepositoryException;
 }

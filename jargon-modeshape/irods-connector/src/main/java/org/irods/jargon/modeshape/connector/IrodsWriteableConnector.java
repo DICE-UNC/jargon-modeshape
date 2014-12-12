@@ -28,6 +28,7 @@ import org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactoryImpl;
 import org.modeshape.jcr.api.nodetype.NodeTypeManager;
 import org.modeshape.jcr.cache.DocumentStoreException;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
+import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
 import org.modeshape.jcr.spi.federation.PageKey;
 import org.modeshape.jcr.spi.federation.Pageable;
@@ -414,8 +415,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		try {
 
 			IRODSAccount irodsAccount = IRODSAccount.instance(
-					"fedzone1.irods.org", 1247, "test1", "test", "",
-					"fedZone1", "");
+					"consortium.local", 1247, "test1", "test", "", "test1", "");
 			return irodsAccount;
 
 		} catch (JargonException e) {
@@ -581,6 +581,15 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 */
 	public InclusionExclusionFilenameFilter getFilenameFilter() {
 		return filenameFilter;
+	}
+
+	public DocumentReader produceDocumentReaderFromDocument(
+			final Document document) {
+		if (document == null) {
+			throw new IllegalArgumentException("null document");
+		}
+
+		return this.readDocument(document);
 	}
 
 }

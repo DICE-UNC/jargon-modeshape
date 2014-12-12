@@ -13,6 +13,7 @@ import org.irods.jargon.modeshape.connector.IrodsNodeTypes;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
+import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,6 +104,21 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 			return new FileNodeCreator(irodsAccessObjectFactory, irodsAccount,
 					irodsWriteableConnector);
 		}
+
+	}
+
+	@Override
+	public AbstractNodeTypeCreator instanceCreatorForDocument(Document document)
+			throws UnknownNodeTypeException, RepositoryException {
+
+		log.info("instanceCreatorForDocument()");
+
+		if (document == null) {
+			throw new IllegalArgumentException("document is null");
+		}
+
+		DocumentReader reader = this.irodsWriteableConnector
+				.produceDocumentReaderFromDocument(document);
 
 	}
 

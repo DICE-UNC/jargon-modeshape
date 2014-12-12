@@ -322,11 +322,14 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	 * #store(org.modeshape.jcr.spi.federation.DocumentReader)
 	 */
 	@Override
-	public void store(DocumentReader documentReader) {
+	public void store(Document document) {
 		log.info("store()");
-		if (documentReader == null) {
+		if (document == null) {
 			throw new IllegalArgumentException("null documentReader");
 		}
+
+		DocumentReader documentReader = this.getConnector()
+				.produceDocumentReaderFromDocument(document);
 
 		String primaryType = documentReader.getPrimaryTypeName();
 		log.info("primaryType:{}", primaryType);
