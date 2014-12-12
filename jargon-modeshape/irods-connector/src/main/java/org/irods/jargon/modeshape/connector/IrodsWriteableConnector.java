@@ -178,7 +178,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
 					this.getIrodsAccount(), this.pathUtilities);
 
-			IRODSFile irodsFile = fileFromIdConverter.fileFor(path, true);
+			IRODSFile irodsFile = fileFromIdConverter.fileFor(path);
 			return irodsFile.exists() ? path : null;
 
 		} catch (JargonException e) {
@@ -211,7 +211,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
 					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
 					this.getIrodsAccount(), this.pathUtilities);
-			return fileFromIdConverter.fileFor(id, false).exists();
+			return fileFromIdConverter.fileFor(id).exists();
 		} catch (JargonException e) {
 			log.error("jargon error getting file from id", e);
 			throw new JargonRuntimeException(e);
@@ -269,7 +269,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
 					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
 					this.getIrodsAccount(), this.pathUtilities);
-			IRODSFile file = fileFromIdConverter.fileFor(id, false);
+			IRODSFile file = fileFromIdConverter.fileFor(id);
 			checkFileNotExcluded(id, (File) file);
 			// Remove the extra properties at the old location ...
 			extraPropertiesStore().removeProperties(id);
