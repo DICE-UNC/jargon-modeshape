@@ -19,7 +19,9 @@ import org.irods.jargon.core.exception.JargonRuntimeException;
 import org.irods.jargon.core.pub.IRODSFileSystem;
 import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
 import org.irods.jargon.core.pub.io.IRODSFile;
+import org.irods.jargon.modeshape.connector.exceptions.IrodsConnectorRuntimeException;
 import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
+import org.irods.jargon.modeshape.connector.nodetypes.AbstractNodeTypeCreator;
 import org.irods.jargon.modeshape.connector.nodetypes.FileFromIdConverter;
 import org.irods.jargon.modeshape.connector.nodetypes.FileFromIdConverterImpl;
 import org.irods.jargon.modeshape.connector.nodetypes.IrodsBinaryValue;
@@ -176,7 +178,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
 					this.getIrodsAccount(), this.pathUtilities);
 
-			IRODSFile irodsFile = fileFromIdConverter.fileFor(path);
+			IRODSFile irodsFile = fileFromIdConverter.fileFor(path, true);
 			return irodsFile.exists() ? path : null;
 
 		} catch (JargonException e) {
@@ -209,7 +211,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
 					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
 					this.getIrodsAccount(), this.pathUtilities);
-			return fileFromIdConverter.fileFor(id).exists();
+			return fileFromIdConverter.fileFor(id, false).exists();
 		} catch (JargonException e) {
 			log.error("jargon error getting file from id", e);
 			throw new JargonRuntimeException(e);
@@ -267,7 +269,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
 					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
 					this.getIrodsAccount(), this.pathUtilities);
-			IRODSFile file = fileFromIdConverter.fileFor(id);
+			IRODSFile file = fileFromIdConverter.fileFor(id, false);
 			checkFileNotExcluded(id, (File) file);
 			// Remove the extra properties at the old location ...
 			extraPropertiesStore().removeProperties(id);
@@ -298,7 +300,21 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		if (document == null) {
 			throw new IllegalArgumentException("null document");
 		}
-		throw new UnsupportedOperationException("not supported yet");
+		try {
+			AbstractNodeTypeCreator nodeCreator = instanceNodeTypeFactory(
+					getIrodsAccount()).instanceCreatorForDocument(document);
+			nodeCreator.store(document);
+			log.info("store successful");
+		} catch (UnknownNodeTypeException e) {
+			log.error("unknown node type, cannot store", e);
+			throw new IrodsConnectorRuntimeException(e);
+		} catch (RepositoryException e) {
+			log.error("store failed with repository exception", e);
+			throw new IrodsConnectorRuntimeException(e);
+		} catch (JargonException e) {
+			log.error("store failed with jargon exception", e);
+			throw new IrodsConnectorRuntimeException(e);
+		}
 
 	}
 
@@ -415,7 +431,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		try {
 
 			IRODSAccount irodsAccount = IRODSAccount.instance(
-					"consortium.local", 1247, "test1", "test", "", "test1", "");
+					"fedzone1.irods.org", 1247, "test1", "test", "",
+					"fedZone1", "");
 			return irodsAccount;
 
 		} catch (JargonException e) {

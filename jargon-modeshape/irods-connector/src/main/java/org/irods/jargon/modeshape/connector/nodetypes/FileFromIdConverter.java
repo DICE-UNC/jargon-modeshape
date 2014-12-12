@@ -7,7 +7,7 @@ import org.irods.jargon.core.pub.io.IRODSFile;
  * Interface for a converter to go from ModeShape ids to iRODS files
  * 
  * @author mikeconway
- *
+ * 
  */
 public interface FileFromIdConverter {
 
@@ -16,6 +16,7 @@ public interface FileFromIdConverter {
 	 * 
 	 * @param id
 	 *            <code>String</code>
+	 * 
 	 * @return {@link IRODSFile} that is the iRODS file
 	 * @throws JargonException
 	 */

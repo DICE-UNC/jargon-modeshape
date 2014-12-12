@@ -107,6 +107,12 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.irods.jargon.modeshape.connector.nodetypes.NodeTypeFactory#
+	 * instanceCreatorForDocument(org.infinispan.schematic.document.Document)
+	 */
 	@Override
 	public AbstractNodeTypeCreator instanceCreatorForDocument(Document document)
 			throws UnknownNodeTypeException, RepositoryException {
@@ -117,9 +123,25 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 			throw new IllegalArgumentException("document is null");
 		}
 
-		DocumentReader reader = this.irodsWriteableConnector
+		DocumentReader documentReader = this.irodsWriteableConnector
 				.produceDocumentReaderFromDocument(document);
 
-	}
+		String primaryType = documentReader.getPrimaryTypeName();
+		log.info("primaryType:{}", primaryType);
 
+		if (PathUtilities.NT_FILE.equals(primaryType)) {
+			return new FileNodeCreator(irodsAccessObjectFactory, irodsAccount,
+					irodsWriteableConnector);
+		} else if (PathUtilities.NT_FOLDER.equals(primaryType)) {
+			return new FileNodeCreator(irodsAccessObjectFactory, irodsAccount,
+					irodsWriteableConnector);
+		} else {
+			log.error("cannot create a node creator for a given node type:{}",
+					primaryType);
+			throw new UnknownNodeTypeException(
+					"cannot create node creator for given node type:"
+							+ primaryType);
+		}
+
+	}
 }

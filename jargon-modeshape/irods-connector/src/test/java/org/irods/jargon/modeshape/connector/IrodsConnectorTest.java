@@ -21,11 +21,11 @@ import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.pub.Stream2StreamAO;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.unittest.ConnectorIrodsSetupUtilities;
 import org.irods.jargon.testutils.TestingPropertiesHelper;
+import org.irods.jargon.testutils.filemanip.ScratchFileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -57,14 +57,18 @@ public class IrodsConnectorTest {
 	private static Properties testingProperties = new Properties();
 	private static TestingPropertiesHelper testingPropertiesHelper = new TestingPropertiesHelper();
 	private static Session session;
+	private static ScratchFileUtils scratchFileUtils = null;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		connectorIrodsSetupUtilities = new ConnectorIrodsSetupUtilities();
-		connectorIrodsSetupUtilities.init();
-
 		TestingPropertiesHelper testingPropertiesLoader = new TestingPropertiesHelper();
 		testingProperties = testingPropertiesLoader.getTestProperties();
+		connectorIrodsSetupUtilities = new ConnectorIrodsSetupUtilities();
+		connectorIrodsSetupUtilities.init();
+		scratchFileUtils = new ScratchFileUtils(testingProperties);
+		scratchFileUtils
+				.clearAndReinitializeScratchDirectory(connectorIrodsSetupUtilities
+						.absolutePathForProjectionRoot());
 
 		engine = new ModeShapeEngine();
 		engine.start();
@@ -206,19 +210,16 @@ public class IrodsConnectorTest {
 	}
 
 	@Test
-	public void storeDocumentFile() throws Exception {
-		String testFileName = "storeDocumentFile.txt";
-		IRODSAccount irodsAccount = testingPropertiesHelper
-				.buildIRODSAccountFromTestProperties(testingProperties);
+	public void testStoreDocumentCollection() throws Exception {
+		String testFileName = "storeDocumentCollection";
 
-		Node parentNode = session.getNode(connectorIrodsSetupUtilities
-				.absolutePathForProjectionRoot()
-				+ "/"
+		Node parentNode = session.getNode("/irodsGrid/"
 				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH);
 
 		// Create an 'nt:file' node at the supplied path ...
-		Node fileNode = parentNode.addNode(testFileName, "nt:file");
+		Node fileNode = parentNode.addNode(testFileName, "nt:folder");
 		session.save();
+
 	}
 
 	protected void dumpProperties(final Node node) throws Exception {

@@ -13,7 +13,6 @@ import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.service.AbstractJargonService;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
-import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
 import org.modeshape.jcr.value.ValueFactories;
 import org.slf4j.Logger;
@@ -145,11 +144,9 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 		return connector;
 	}
 
-	public void store(final DocumentReader documentReader) {
-		log.info("store()");
-		if (documentReader == null) {
-			throw new IllegalArgumentException("null documentReader");
-		}
+	public void store(final Document document) {
+		throw new UnsupportedOperationException(
+				"Store not implemented for this document type");
 
 	}
 
