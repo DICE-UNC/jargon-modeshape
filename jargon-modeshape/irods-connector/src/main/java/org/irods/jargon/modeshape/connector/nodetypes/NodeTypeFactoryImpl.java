@@ -136,6 +136,9 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 		} else if (PathUtilities.NT_FOLDER.equals(primaryType)) {
 			return new FileNodeCreator(irodsAccessObjectFactory, irodsAccount,
 					irodsWriteableConnector);
+		} else if (PathUtilities.NT_RESOURCE.equals(primaryType)) {
+			return new ContentNodeCreator(irodsAccessObjectFactory,
+					irodsAccount, irodsWriteableConnector);
 		} else {
 			log.error("cannot create a node creator for a given node type:{}",
 					primaryType);

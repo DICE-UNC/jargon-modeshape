@@ -7,8 +7,12 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Calendar;
 import java.util.Properties;
 import java.util.concurrent.Future;
 
@@ -21,10 +25,13 @@ import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import junit.framework.Assert;
+
 import org.irods.jargon.core.pub.Stream2StreamAO;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.unittest.ConnectorIrodsSetupUtilities;
 import org.irods.jargon.testutils.TestingPropertiesHelper;
+import org.irods.jargon.testutils.filemanip.FileGenerator;
 import org.irods.jargon.testutils.filemanip.ScratchFileUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -219,6 +226,54 @@ public class IrodsConnectorTest {
 		// Create an 'nt:file' node at the supplied path ...
 		Node fileNode = parentNode.addNode(testFileName, "nt:folder");
 		session.save();
+		// Get the just added node
+
+		Node actual = session.getNode("/irodsGrid/"
+				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
+				+ "/" + testFileName);
+		Assert.assertNotNull("did not find new node", actual);
+
+	}
+
+	@Test
+	public void testStoreDocumentFile() throws Exception {
+		String testFileName = "storeDocumentFileData.txt";
+		Node parentNode = session.getNode("/irodsGrid/"
+				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH);
+
+		// create file under parent node
+		String absPath = scratchFileUtils
+				.createAndReturnAbsoluteScratchPath(ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH);
+		String fileNameOrig = FileGenerator.generateFileOfFixedLengthGivenName(
+				absPath, testFileName, 200);
+		File newFile = new File(fileNameOrig);
+
+		Calendar lastModified = Calendar.getInstance();
+		lastModified.setTimeInMillis(newFile.lastModified());
+
+		// Create a buffered input stream for the file's contents ...
+		InputStream stream = new BufferedInputStream(new FileInputStream(
+				newFile));
+
+		// Create an 'nt:file' node at the supplied path ...
+		Node fileNode = parentNode.addNode(testFileName, "nt:file");
+
+		// Upload the file to that node ...
+		Node contentNode = fileNode.addNode("jcr:content", "nt:resource");
+		javax.jcr.Binary binary = session.getValueFactory()
+				.createBinary(stream);
+		contentNode.setProperty("jcr:data", binary);
+		contentNode.setProperty("jcr:lastModified", lastModified);
+
+		// The auto-created properties are added when the session is saved ...
+		session.save();
+
+		// Get the just added node
+
+		Node actual = session.getNode("/irodsGrid/"
+				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
+				+ "/" + testFileName);
+		Assert.assertNotNull("did not find new node", actual);
 
 	}
 

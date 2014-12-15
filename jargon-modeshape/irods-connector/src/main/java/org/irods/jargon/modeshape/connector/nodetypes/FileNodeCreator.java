@@ -3,10 +3,8 @@
  */
 package org.irods.jargon.modeshape.connector.nodetypes;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +14,6 @@ import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.FileNotFoundException;
 import org.irods.jargon.core.exception.JargonException;
-import org.irods.jargon.core.exception.NoResourceDefinedException;
 import org.irods.jargon.core.pub.CollectionAO;
 import org.irods.jargon.core.pub.DataObjectAO;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
@@ -28,14 +25,11 @@ import org.irods.jargon.core.query.MetaDataAndDomainData;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.irods.jargon.modeshape.connector.exceptions.IrodsConnectorRuntimeException;
-import org.modeshape.common.util.IoUtil;
-import org.modeshape.jcr.JcrLexicon;
 import org.modeshape.jcr.cache.DocumentStoreException;
 import org.modeshape.jcr.spi.federation.Connector.ExtraProperties;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
-import org.modeshape.jcr.value.BinaryValue;
 import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.Property;
 import org.slf4j.Logger;
@@ -153,6 +147,13 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		if (nextOffset < totalChildren) {
 			writer.addPage(id, nextOffset, IrodsWriteableConnector.PAGE_SIZE,
 					totalChildren);
+		}
+
+		if (!PathUtilities.isRoot(id)) {
+			// Set the reference to the parent ...
+			String parentId = getPathUtilities().idFor(
+					(IRODSFile) file.getParentFile());
+			writer.setParents(parentId);
 		}
 
 		Document myDoc = writer.document();
@@ -577,39 +578,10 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 				file.createNewFile();
 			} else if (PathUtilities.NT_FOLDER.equals(primaryType)) {
 				file.mkdir();
-			} else if (this.getPathUtilities().isContentNode(id)) {
-				Property content = documentReader
-						.getProperty(PathUtilities.JCR_DATA);
-				BinaryValue binary = factories().getBinaryFactory().create(
-						content.getFirstValue());
-				IRODSFile irodsFile = file;
-
-				OutputStream ostream;
-				try {
-					ostream = new BufferedOutputStream(
-							IRODSFileSystemSingletonWrapper
-									.instance()
-									.getIRODSAccessObjectFactory()
-									.getIRODSFileFactory(getIrodsAccount())
-									.instanceSessionClosingIRODSFileOutputStream(
-											irodsFile));
-				} catch (NoResourceDefinedException e) {
-					throw new DocumentStoreException(id, e);
-				} catch (JargonException e) {
-					throw new DocumentStoreException(id, e);
-				}
-				IoUtil.write(binary.getStream(), ostream);
-				if (!PathUtilities.NT_RESOURCE.equals(primaryType)) {
-					// This is the "jcr:content" child, but the primary type
-					// is
-					// non-standard so record it as an extra property
-					extraProperties
-							.add(properties.get(JcrLexicon.PRIMARY_TYPE));
-				}
+			} else {
 			}
 			extraProperties.save();
-		} catch (RepositoryException e) {
-			throw new DocumentStoreException(id, e);
+
 		} catch (IOException e) {
 			throw new DocumentStoreException(id, e);
 		}

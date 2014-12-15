@@ -3,19 +3,31 @@
  */
 package org.irods.jargon.modeshape.connector.nodetypes;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
 import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.JargonException;
+import org.irods.jargon.core.exception.NoResourceDefinedException;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
+import org.modeshape.common.util.IoUtil;
+import org.modeshape.jcr.JcrLexicon;
+import org.modeshape.jcr.cache.DocumentStoreException;
+import org.modeshape.jcr.spi.federation.Connector.ExtraProperties;
+import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
 import org.modeshape.jcr.value.BinaryValue;
+import org.modeshape.jcr.value.Name;
+import org.modeshape.jcr.value.Property;
 import org.modeshape.jcr.value.binary.ExternalBinaryValue;
 import org.modeshape.jcr.value.binary.UrlBinaryValue;
 import org.slf4j.Logger;
@@ -149,6 +161,84 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 				file.length(), file.getName(), this.getConnector()
 						.getMimeTypeDetector(),
 				this.getIrodsAccessObjectFactory(), this.getIrodsAccount());
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.irods.jargon.modeshape.connector.nodetypes.AbstractNodeTypeCreator
+	 * #store(org.infinispan.schematic.document.Document)
+	 */
+	@Override
+	public void store(Document document) {
+		log.info("store()");
+
+		if (document == null) {
+			throw new IllegalArgumentException("null document");
+		}
+
+		DocumentReader reader = this.getConnector()
+				.produceDocumentReaderFromDocument(document);
+		String id = reader.getDocumentId();
+		log.info("file to store:{}", id);
+		FileFromIdConverter converter = new FileFromIdConverterImpl(
+				this.getIrodsAccessObjectFactory(), this.getIrodsAccount(),
+				this.getPathUtilities());
+		IRODSFile file;
+		try {
+			file = converter.fileFor(id);
+		} catch (JargonException e) {
+			log.error("jargonException getting file for storing folder", e);
+			throw new DocumentStoreException(id, "unable to get file for store");
+		}
+		if (this.isExcluded((File) file)) {
+			throw new DocumentStoreException(id, "file is excluded");
+		}
+		File parent = file.getParentFile();
+		if (!parent.exists()) {
+			parent.mkdirs();
+		}
+		if (!parent.canWrite()) {
+			throw new DocumentStoreException(id,
+					"unable to write to parent file");
+		}
+
+		Map<Name, Property> properties = reader.getProperties();
+		ExtraProperties extraProperties = this.getConnector()
+				.retrieveExtraPropertiesForId(id, false);
+		extraProperties.addAll(properties).except(
+				PathUtilities.JCR_PRIMARY_TYPE, PathUtilities.JCR_CREATED,
+				PathUtilities.JCR_LAST_MODIFIED, PathUtilities.JCR_DATA);
+		extraProperties.save();
+
+		Property content = properties.get(JcrLexicon.DATA);
+		BinaryValue binary = factories().getBinaryFactory().create(
+				content.getFirstValue());
+		IRODSFile irodsFile = file;
+
+		OutputStream ostream;
+		try {
+			ostream = new BufferedOutputStream(this.getConnector()
+					.getIrodsFileSystem().getIRODSAccessObjectFactory()
+					.getIRODSFileFactory(getIrodsAccount())
+					.instanceSessionClosingIRODSFileOutputStream(irodsFile));
+			IoUtil.write(binary.getStream(), ostream);
+
+		} catch (NoResourceDefinedException e) {
+			log.error("exception in store", e);
+			throw new DocumentStoreException(id, e);
+		} catch (JargonException e) {
+			log.error("exception in store", e);
+			throw new DocumentStoreException(id, e);
+		} catch (IOException e) {
+			log.error("exception in store", e);
+			throw new DocumentStoreException(id, e);
+		} catch (RepositoryException e) {
+			log.error("exception in store", e);
+			throw new DocumentStoreException(id, e);
+		}
+
 	}
 
 }
