@@ -226,7 +226,7 @@ public class IrodsConnectorTest {
 				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH);
 
 		// Create an 'nt:file' node at the supplied path ...
-		Node fileNode = parentNode.addNode(testFileName, "nt:folder");
+		parentNode.addNode(testFileName, "nt:folder");
 		session.save();
 		// Get the just added node
 
@@ -346,8 +346,9 @@ public class IrodsConnectorTest {
 				.instanceIRODSFile(
 						connectorIrodsSetupUtilities
 								.absolutePathForProjectionRoot()
-								+ "/ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH/"
-								+ testFileTargetName);
+								+ "/"
+								+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
+								+ "/" + testFileTargetName);
 		Assert.assertTrue("did not move file to target", actualFile.exists());
 
 		this.assertFile(actual, (File) actualFile);

@@ -597,7 +597,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 				this.getPathUtilities());
 		IRODSFile child;
 		try {
-			child = converter.fileFor(id);
+			child = converter.fileFor(renamedChildId);
 		} catch (JargonException e) {
 			log.error("jargonException getting file for storing folder", e);
 			throw new DocumentStoreException(id, "unable to get file for store");
