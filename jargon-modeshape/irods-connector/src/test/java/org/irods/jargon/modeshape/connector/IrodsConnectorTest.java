@@ -27,7 +27,6 @@ import javax.jcr.Session;
 
 import junit.framework.Assert;
 
-import org.irods.jargon.core.pub.IRODSFileSystem;
 import org.irods.jargon.core.pub.Stream2StreamAO;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.unittest.ConnectorIrodsSetupUtilities;
@@ -63,10 +62,10 @@ public class IrodsConnectorTest {
 	public static final Logger log = LoggerFactory
 			.getLogger(IrodsConnectorTest.class);
 	private static Properties testingProperties = new Properties();
+	@SuppressWarnings("unused")
 	private static TestingPropertiesHelper testingPropertiesHelper = new TestingPropertiesHelper();
 	private static Session session;
 	private static ScratchFileUtils scratchFileUtils = null;
-	private static IRODSFileSystem irodsFileSystem;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -355,6 +354,94 @@ public class IrodsConnectorTest {
 
 	}
 
+	@Test
+	public void moveDocumentCollection() throws Exception {
+		String testCollectionName = "moveDocumentCollection";
+		String testCollectionTargetName = "moveDocumentCollectionTarget";
+		Node parentNode = session.getNode("/irodsGrid/"
+				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH);
+
+		Node folderNode = parentNode.addNode(testCollectionName, "nt:folder");
+
+		String testFileName1 = "testFileName1.txt";
+		String testFileName2 = "testFileName2.txt";
+
+		// create file under parent node
+		String absPath = scratchFileUtils
+				.createAndReturnAbsoluteScratchPath(ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
+						+ "/" + testCollectionName);
+		String fileNameOrig1 = FileGenerator
+				.generateFileOfFixedLengthGivenName(absPath,
+						testCollectionName, 20000);
+		File newFile1 = new File(fileNameOrig1);
+
+		Calendar lastModified = Calendar.getInstance();
+		lastModified.setTimeInMillis(newFile1.lastModified());
+
+		// Create a buffered input stream for the file's contents ...
+		InputStream stream = new BufferedInputStream(new FileInputStream(
+				newFile1));
+
+		// Create an 'nt:file' node at the supplied path ...
+		Node fileNode1 = folderNode.addNode(testFileName1, "nt:file");
+
+		// Upload the file to that node ...
+		Node contentNode = fileNode1.addNode("jcr:content", "nt:resource");
+		javax.jcr.Binary binary = session.getValueFactory()
+				.createBinary(stream);
+		contentNode.setProperty("jcr:data", binary);
+		contentNode.setProperty("jcr:lastModified", lastModified);
+
+		String fileNameOrig2 = FileGenerator
+				.generateFileOfFixedLengthGivenName(absPath,
+						testCollectionName, 20000);
+		File newFile2 = new File(fileNameOrig2);
+
+		lastModified.setTimeInMillis(newFile2.lastModified());
+
+		// Create a buffered input stream for the file's contents ...
+		stream = new BufferedInputStream(new FileInputStream(newFile2));
+
+		// Create an 'nt:file' node at the supplied path ...
+		Node fileNode2 = folderNode.addNode(testFileName2, "nt:file");
+
+		// Upload the file to that node ...
+		contentNode = fileNode2.addNode("jcr:content", "nt:resource");
+		javax.jcr.Binary binary2 = session.getValueFactory().createBinary(
+				stream);
+		contentNode.setProperty("jcr:data", binary2);
+		contentNode.setProperty("jcr:lastModified", lastModified);
+
+		// The auto-created properties are added when the session is saved ...
+		session.save();
+
+		// Get the just added node
+
+		Node actual = session.getNode("/irodsGrid/"
+				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
+				+ "/" + testCollectionName);
+		Assert.assertNotNull("did not find new node", actual);
+
+		// move that new file to a different parent
+
+		String collectionNodePath = folderNode.getPath();
+		String targetNodePath = "/irodsGrid/"
+				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
+				+ "/" + testCollectionTargetName;
+
+		session.save();
+
+		session.move(collectionNodePath, targetNodePath);
+
+		// The auto-created properties are added when the session is saved ...
+		session.save();
+
+		actual = session.getNode("/irodsGrid/"
+				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
+				+ "/" + testCollectionTargetName);
+		Assert.assertNotNull("did not find new node", actual);
+	}
+
 	protected void dumpProperties(final Node node) throws Exception {
 		PropertyIterator iter = node.getProperties();
 		Property prop;
@@ -412,6 +499,7 @@ public class IrodsConnectorTest {
 				is(lastModified));
 	}
 
+	@SuppressWarnings("unused")
 	private void assertPathNotFound(final String path) throws Exception {
 		try {
 			session.getNode(path);
