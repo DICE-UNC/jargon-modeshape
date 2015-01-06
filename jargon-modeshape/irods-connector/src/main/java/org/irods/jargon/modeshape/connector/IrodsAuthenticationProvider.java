@@ -33,9 +33,9 @@ public class IrodsAuthenticationProvider implements AuthenticationProvider {
 	/**
 	 * TODO: where to get preset info?
 	 */
-	private final String host = "consortium.local";
+	private final String host = "fedzone1.irods.org";
 	private final int port = 1247;
-	private final String zone = "test1";
+	private final String zone = "fedZone1";
 
 	/**
 	 * 
@@ -58,9 +58,6 @@ public class IrodsAuthenticationProvider implements AuthenticationProvider {
 			Map<String, Object> sessionAttributes) {
 
 		log.info("authenticate()");
-
-		// FIXME: of course remove this!
-		log.info("credentials:{}", credentials);
 
 		IRODSAccount irodsAccount = null;
 		if (credentials instanceof SimpleCredentials) {

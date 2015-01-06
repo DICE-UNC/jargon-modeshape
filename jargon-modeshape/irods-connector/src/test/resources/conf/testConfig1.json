@@ -24,6 +24,13 @@
             "useOnFailedLogin" : true
         }
     },
+     "providers" : [
+        {
+            "name" : "irods",
+            "classname" : "org.irods.jargon.modeshape.connector.IrodsAuthenticationProvider"
+        }
+    ]
+    },
    
      "externalSources" : {
         "irods-modeshape" : {
