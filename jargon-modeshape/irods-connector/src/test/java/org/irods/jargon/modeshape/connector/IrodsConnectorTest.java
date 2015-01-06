@@ -279,6 +279,80 @@ public class IrodsConnectorTest {
 	}
 
 	@Test
+	public void removeDocumentFile() throws Exception {
+		String testFileName = "removeDocumentFile.txt";
+		Node parentNode = session.getNode("/irodsGrid/"
+				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH);
+
+		// create file under parent node
+		String absPath = scratchFileUtils
+				.createAndReturnAbsoluteScratchPath(ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH);
+		String fileNameOrig = FileGenerator.generateFileOfFixedLengthGivenName(
+				absPath, testFileName, 200);
+		File newFile = new File(fileNameOrig);
+
+		Calendar lastModified = Calendar.getInstance();
+		lastModified.setTimeInMillis(newFile.lastModified());
+
+		// Create a buffered input stream for the file's contents ...
+		InputStream stream = new BufferedInputStream(new FileInputStream(
+				newFile));
+
+		// Create an 'nt:file' node at the supplied path ...
+		Node fileNode = parentNode.addNode(testFileName, "nt:file");
+
+		// Upload the file to that node ...
+		Node contentNode = fileNode.addNode("jcr:content", "nt:resource");
+		javax.jcr.Binary binary = session.getValueFactory()
+				.createBinary(stream);
+		contentNode.setProperty("jcr:data", binary);
+		contentNode.setProperty("jcr:lastModified", lastModified);
+
+		// The auto-created properties are added when the session is saved ...
+		session.save();
+
+		// Get the just added node
+
+		Node actual = session.getNode("/irodsGrid/"
+				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
+				+ "/" + testFileName);
+		Assert.assertNotNull("did not find new node", actual);
+
+		// remove the node
+
+		session.removeItem(actual.getPath());
+
+		// The auto-created properties are added when the session is saved ...
+		session.save();
+
+		boolean foundException = false;
+
+		try {
+
+			actual = session.getNode("/irodsGrid/"
+					+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
+					+ "/" + testFileName);
+		} catch (PathNotFoundException pnf) {
+			foundException = true;
+		}
+
+		Assert.assertTrue("should not have found removed node", foundException);
+
+		IRODSFile actualFile = connectorIrodsSetupUtilities
+				.getIrodsFileSystem()
+				.getIRODSFileFactory(
+						connectorIrodsSetupUtilities.getIrodsAccount())
+				.instanceIRODSFile(
+						connectorIrodsSetupUtilities
+								.absolutePathForProjectionRoot()
+								+ "/"
+								+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
+								+ "/" + testFileName);
+		Assert.assertFalse("did not remove file in iRODS", actualFile.exists());
+
+	}
+
+	@Test
 	public void moveDocumentFile() throws Exception {
 		String testFileName = "moveDocumentFile.txt";
 		String testFileTargetName = "moveDocumentFileTarget.txt";

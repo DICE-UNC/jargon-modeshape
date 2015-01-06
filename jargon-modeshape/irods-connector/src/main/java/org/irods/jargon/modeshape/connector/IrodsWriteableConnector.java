@@ -260,6 +260,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * org.modeshape.jcr.spi.federation.Connector#removeDocument(java.lang.String
 	 * )
 	 */
+
 	@Override
 	public boolean removeDocument(String id) {
 		log.info("removeDocument()");
