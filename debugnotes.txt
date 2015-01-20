@@ -1,0 +1,258 @@
+File
+
+Create nt:file node
+
+
+ private static final String JCR_CONTENT = "jcr:content";
+ private static final String JCR_CONTENT_SUFFIX = DELIMITER + JCR_CONTENT;
+
+ 
+ ...
+ 
+ 
+	// https://github.com/ModeShape/modeshape/blob/master/modeshape-jcr/src/main/java/org/modeshape/connector/filesystem/FileSystemConnector.java#L513
+
+ } else if (file.isFile()) {
+            writer = newDocument(id);
+            writer.setPrimaryType(NT_FILE);
+
+            writer.addProperty(JCR_CREATED, createdTimeFor(file));
+            writer.addProperty(JCR_CREATED_BY, ownerFor(file));
+            String childId = contentChildId(id, isRoot);
+            writer.addChild(childId, JCR_CONTENT);
+            if (!isQueryable()) writer.setNotQueryable();
+			
+			
+			
+			...
+			
+
+ protected String contentChildId( String fileId,
+                                     boolean isRoot ) {
+        return isRoot ? JCR_CONTENT_SUFFIX : fileId + JCR_CONTENT_SUFFIX;
+ }
+
+
+iRODS
+
+public static final String JCR_CONTENT = "jcr:content";
+	public static final String JCR_CONTENT_SUFFIX = DELIMITER + JCR_CONTENT;
+
+https://github.com/DICE-UNC/jargon-modeshape/blob/development/jargon-modeshape/irods-connector/src/main/java/org/irods/jargon/modeshape/connector/nodetypes/FileNodeCreator.java#L148
+
+private Document instanceForIdAsFile(String id, IRODSFile file) {
+		log.info("instanceFrIdAsFile()");
+		DocumentWriter writer = this.newDocument(id);
+		writer.setPrimaryType(PathUtilities.NT_FILE);
+		writer.addMixinType(PathUtilities.JCR_IRODS_IRODSOBJECT);
+
+		writer.addProperty(PathUtilities.JCR_CREATED, factories()
+				.getDateFactory().create(file.lastModified()));
+		writer.addProperty(PathUtilities.JCR_CREATED_BY, null); // ignored
+
+		String childId = PathUtilities.formatChildIdForDocument(id);
+		writer.addChild(childId, PathUtilities.JCR_CONTENT);
+		
+...
+
+public static String formatChildIdForDocument(final String id) {
+		if (id == null) {
+			throw new IllegalArgumentException("null id");
+		}
+
+		return isRoot(id) ? JCR_CONTENT_SUFFIX : id + JCR_CONTENT_SUFFIX;
+	}
+	
+	
+	
+	
+	
+
+	
+	
+
+		
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+============
+
+Processing of content node
+
+
+File
+
+// https://github.com/ModeShape/modeshape/blob/master/modeshape-jcr/src/main/java/org/modeshape/connector/filesystem/FileSystemConnector.java#L492
+
+ if (isResource) {
+            writer = newDocument(id);
+            BinaryValue binaryValue = binaryFor(file);
+            writer.setPrimaryType(NT_RESOURCE);
+            writer.addProperty(JCR_DATA, binaryValue);
+            if (addMimeTypeMixin) {
+                String mimeType = null;
+                try {
+                    mimeType = binaryValue.getMimeType();
+                } catch (Throwable e) {
+                    getLogger().error(e, JcrI18n.couldNotGetMimeType, getSourceName(), id, e.getMessage());
+                }
+                writer.addProperty(JCR_MIME_TYPE, mimeType);
+            }
+            writer.addProperty(JCR_LAST_MODIFIED, lastModifiedTimeFor(file));
+            writer.addProperty(JCR_LAST_MODIFIED_BY, ownerFor(file));
+			
+			
+			...
+			
+			
+ protected ExternalBinaryValue binaryFor( File file ) {
+        try {
+            return createBinaryValue(file);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Utility method to create a {@link BinaryValue} object for the given file. Subclasses should rarely override this method,
+     * since the {@link UrlBinaryValue} will be applicable in most situations.
+     * 
+     * @param file the file for which the {@link BinaryValue} is to be created; never null
+     * @return the binary value; never null
+     * @throws IOException if there is an error creating the value
+     */
+    protected ExternalBinaryValue createBinaryValue( File file ) throws IOException {
+        URL content = createUrlForFile(file);
+        return new UrlBinaryValue(sha1(file), getSourceName(), content, file.length(), file.getName(), getMimeTypeDetector());
+    }
+	
+	
+	
+	
+	
+iRODS
+
+https://github.com/DICE-UNC/jargon-modeshape/blob/development/jargon-modeshape/irods-connector/src/main/java/org/irods/jargon/modeshape/connector/nodetypes/ContentNodeCreator.java#L83
+
+DocumentWriter writer = newDocument(id);
+		BinaryValue binaryValue = createBinaryValue(file, id);
+		writer.setPrimaryType(PathUtilities.NT_RESOURCE);
+		writer.addProperty(PathUtilities.JCR_DATA, binaryValue);
+		
+		
+		
+		
+....
+
+
+protected ExternalBinaryValue createBinaryValue(final IRODSFile file,
+			final String id) {
+
+		log.info("createBinaryFile()");
+		assert file != null;
+		log.info("file:{}", file);
+
+		return new IrodsBinaryValue(this.getPathUtilities().sha1(file), this
+				.getConnector().getSourceName(), file.getAbsolutePath(),
+				file.length(), file.getName(), this.getConnector()
+						.getMimeTypeDetector(),
+				this.getIrodsAccessObjectFactory(), this.getIrodsAccount());
+	}
+
+
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			test does this
+			
+			
+			Node actual = session.getNode("/irodsGrid/col1/subcol1/file0.txt");
+
+		assertFile(actual, rootFile);
+
+		dumpNodes(actual, 0);
+
+		Node node1Content = actual.getNode("jcr:content");
+
+		assertThat(node1Content.getName(), is("jcr:content"));
+		assertThat(node1Content.getPrimaryNodeType().getName(),
+				is("nt:resource"));
+
+		dumpProperties(node1Content);
+
+		javax.jcr.Binary binary = node1Content.getProperty("jcr:data")
+				.getBinary();
+
+				
+				
+				
+				
+				
+	dumpnodes shows 			
+				
+				
+				
+		 name:file0.txt  path:/file0.txt id:eeba412eaa9871/col1/subcol1/file0.txt nodeType:nt:file
+29040 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - --name:jcr:content  path:/file0.txt/jcr:content id:eeba412eaa9871/col1/subcol1/file0.txt/jcr:content nodeType:nt:resource
+			
+
+dump properties on the jcr:content node (node1Content) shows
+
+126360 [main] DEBUG org.irods.jargon.modeshape.connector.IrodsWriteableConnector  - returning document:{ "key" : "/col1/subcol1" , "properties" : { "http://www.jcp.org/jcr/1.0" : { "primaryType" : { "$name" : "nt:folder" } , "mixinTypes" : { "$name" : "{http://www.irods.org/jcr/irods/1.0}irodsobject" } , "created" : { "$date" : "2014-12-03T14:48:02.000-05:00" } } } , "children" : [ { "key" : "/col1/subcol1/file0.txt" , "name" : "file0.txt" } , { "key" : "/col1/subcol1/file10.txt" , "name" : "file10.txt" } , { "key" : "/col1/subcol1/file11.txt" , "name" : "file11.txt" } , { "key" : "/col1/subcol1/file12.txt" , "name" : "file12.txt" } , { "key" : "/col1/subcol1/file13.txt" , "name" : "file13.txt" } , { "key" : "/col1/subcol1/file14.txt" , "name" : "file14.txt" } , { "key" : "/col1/subcol1/file15.txt" , "name" : "file15.txt" } , { "key" : "/col1/subcol1/file16.txt" , "name" : "file16.txt" } , { "key" : "/col1/subcol1/file17.txt" , "name" : "file17.txt" } , { "key" : "/col1/subcol1/file18.txt" , "name" : "file18.txt" } , { "key" : "/col1/subcol1/file19.txt" , "name" : "file19.txt" } , { "key" : "/col1/subcol1/file1.txt" , "name" : "file1.txt" } , { "key" : "/col1/subcol1/file20.txt" , "name" : "file20.txt" } , { "key" : "/col1/subcol1/file21.txt" , "name" : "file21.txt" } , { "key" : "/col1/subcol1/file22.txt" , "name" : "file22.txt" } , { "key" : "/col1/subcol1/file23.txt" , "name" : "file23.txt" } , { "key" : "/col1/subcol1/file24.txt" , "name" : "file24.txt" } , { "key" : "/col1/subcol1/file25.txt" , "name" : "file25.txt" } , { "key" : "/col1/subcol1/file26.txt" , "name" : "file26.txt" } , { "key" : "/col1/subcol1/file27.txt" , "name" : "file27.txt" } , { "key" : "/col1/subcol1/file28.txt" , "name" : "file28.txt" } , { "key" : "/col1/subcol1/file29.txt" , "name" : "file29.txt" } , { "key" : "/col1/subcol1/file2.txt" , "name" : "file2.txt" } , { "key" : "/col1/subcol1/file30.txt" , "name" : "file30.txt" } , { "key" : "/col1/subcol1/file31.txt" , "name" : "file31.txt" } , { "key" : "/col1/subcol1/file32.txt" , "name" : "file32.txt" } , { "key" : "/col1/subcol1/file33.txt" , "name" : "file33.txt" } , { "key" : "/col1/subcol1/file34.txt" , "name" : "file34.txt" } , { "key" : "/col1/subcol1/file35.txt" , "name" : "file35.txt" } , { "key" : "/col1/subcol1/file36.txt" , "name" : "file36.txt" } , { "key" : "/col1/subcol1/file37.txt" , "name" : "file37.txt" } , { "key" : "/col1/subcol1/file38.txt" , "name" : "file38.txt" } , { "key" : "/col1/subcol1/file39.txt" , "name" : "file39.txt" } , { "key" : "/col1/subcol1/file3.txt" , "name" : "file3.txt" } , { "key" : "/col1/subcol1/file40.txt" , "name" : "file40.txt" } , { "key" : "/col1/subcol1/file41.txt" , "name" : "file41.txt" } , { "key" : "/col1/subcol1/file42.txt" , "name" : "file42.txt" } , { "key" : "/col1/subcol1/file43.txt" , "name" : "file43.txt" } , { "key" : "/col1/subcol1/file44.txt" , "name" : "file44.txt" } , { "key" : "/col1/subcol1/file45.txt" , "name" : "file45.txt" } , { "key" : "/col1/subcol1/file46.txt" , "name" : "file46.txt" } , { "key" : "/col1/subcol1/file47.txt" , "name" : "file47.txt" } , { "key" : "/col1/subcol1/file48.txt" , "name" : "file48.txt" } , { "key" : "/col1/subcol1/file49.txt" , "name" : "file49.txt" } , { "key" : "/col1/subcol1/file4.txt" , "name" : "file4.txt" } , { "key" : "/col1/subcol1/file50.txt" , "name" : "file50.txt" } , { "key" : "/col1/subcol1/file51.txt" , "name" : "file51.txt" } , { "key" : "/col1/subcol1/file52.txt" , "name" : "file52.txt" } , { "key" : "/col1/subcol1/file53.txt" , "name" : "file53.txt" } , { "key" : "/col1/subcol1/file54.txt" , "name" : "file54.txt" } , { "key" : "/col1/subcol1/file55.txt" , "name" : "file55.txt" } , { "key" : "/col1/subcol1/file56.txt" , "name" : "file56.txt" } , { "key" : "/col1/subcol1/file57.txt" , "name" : "file57.txt" } , { "key" : "/col1/subcol1/file58.txt" , "name" : "file58.txt" } , { "key" : "/col1/subcol1/file59.txt" , "name" : "file59.txt" } , { "key" : "/col1/subcol1/file5.txt" , "name" : "file5.txt" } , { "key" : "/col1/subcol1/file60.txt" , "name" : "file60.txt" } , { "key" : "/col1/subcol1/file61.txt" , "name" : "file61.txt" } , { "key" : "/col1/subcol1/file62.txt" , "name" : "file62.txt" } , { "key" : "/col1/subcol1/file63.txt" , "name" : "file63.txt" } , { "key" : "/col1/subcol1/file64.txt" , "name" : "file64.txt" } , { "key" : "/col1/subcol1/file65.txt" , "name" : "file65.txt" } , { "key" : "/col1/subcol1/file66.txt" , "name" : "file66.txt" } , { "key" : "/col1/subcol1/file67.txt" , "name" : "file67.txt" } , { "key" : "/col1/subcol1/file68.txt" , "name" : "file68.txt" } , { "key" : "/col1/subcol1/file69.txt" , "name" : "file69.txt" } , { "key" : "/col1/subcol1/file6.txt" , "name" : "file6.txt" } , { "key" : "/col1/subcol1/file70.txt" , "name" : "file70.txt" } , { "key" : "/col1/subcol1/file71.txt" , "name" : "file71.txt" } , { "key" : "/col1/subcol1/file72.txt" , "name" : "file72.txt" } , { "key" : "/col1/subcol1/file73.txt" , "name" : "file73.txt" } , { "key" : "/col1/subcol1/file74.txt" , "name" : "file74.txt" } , { "key" : "/col1/subcol1/file75.txt" , "name" : "file75.txt" } , { "key" : "/col1/subcol1/file76.txt" , "name" : "file76.txt" } , { "key" : "/col1/subcol1/file77.txt" , "name" : "file77.txt" } , { "key" : "/col1/subcol1/file78.txt" , "name" : "file78.txt" } , { "key" : "/col1/subcol1/file79.txt" , "name" : "file79.txt" } , { "key" : "/col1/subcol1/file7.txt" , "name" : "file7.txt" } , { "key" : "/col1/subcol1/file80.txt" , "name" : "file80.txt" } , { "key" : "/col1/subcol1/file81.txt" , "name" : "file81.txt" } , { "key" : "/col1/subcol1/file82.txt" , "name" : "file82.txt" } , { "key" : "/col1/subcol1/file83.txt" , "name" : "file83.txt" } , { "key" : "/col1/subcol1/file84.txt" , "name" : "file84.txt" } , { "key" : "/col1/subcol1/file85.txt" , "name" : "file85.txt" } , { "key" : "/col1/subcol1/file86.txt" , "name" : "file86.txt" } , { "key" : "/col1/subcol1/file87.txt" , "name" : "file87.txt" } , { "key" : "/col1/subcol1/file88.txt" , "name" : "file88.txt" } , { "key" : "/col1/subcol1/file89.txt" , "name" : "file89.txt" } , { "key" : "/col1/subcol1/file8.txt" , "name" : "file8.txt" } , { "key" : "/col1/subcol1/file90.txt" , "name" : "file90.txt" } , { "key" : "/col1/subcol1/file91.txt" , "name" : "file91.txt" } , { "key" : "/col1/subcol1/file92.txt" , "name" : "file92.txt" } , { "key" : "/col1/subcol1/file93.txt" , "name" : "file93.txt" } , { "key" : "/col1/subcol1/file94.txt" , "name" : "file94.txt" } , { "key" : "/col1/subcol1/file95.txt" , "name" : "file95.txt" } , { "key" : "/col1/subcol1/file96.txt" , "name" : "file96.txt" } , { "key" : "/col1/subcol1/file97.txt" , "name" : "file97.txt" } , { "key" : "/col1/subcol1/file98.txt" , "name" : "file98.txt" } , { "key" : "/col1/subcol1/file99.txt" , "name" : "file99.txt" } , { "key" : "/col1/subcol1/file9.txt" , "name" : "file9.txt" } ] }
+175016 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - property
+175016 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - name:jcr:primaryType
+175017 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - path:/file0.txt/jcr:content/jcr:primaryType
+175017 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - type:7
+175017 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - property
+175017 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - name:jcr:data
+175018 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - path:/file0.txt/jcr:content/jcr:data
+175018 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - type:2
+175019 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - is binary!....
+175019 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - class:class org.modeshape.jcr.JcrSingleValueProperty
+175019 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - size:0
+175019 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - stream:java.io.ByteArrayInputStream@6e0c25e2
+175019 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - property
+175020 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - name:jcr:lastModified
+175020 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - path:/file0.txt/jcr:content/jcr:lastModified
+175021 [main] INFO  org.irods.jargon.modeshape.connector.IrodsConnectorTest  - type:5
+
+
+the getBinary() calls JcrSingleValueProperty.getBinary()
+
+without calling ExternalDocumentStore it returns
+
+binary (0B, SHA1=da39a3ee5e6b4b0d3255bfef95601890afd80709)
+
+
+
+
+So it does not appear to call into any connector at all.
+					
+				
+	
+			
+			
+			
+			
+			
+			
+			
+			
+	
+	
