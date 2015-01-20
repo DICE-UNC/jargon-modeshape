@@ -13,6 +13,7 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 
 import org.infinispan.schematic.document.Document;
+import org.irods.jargon.core.connection.AuthScheme;
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.core.exception.JargonRuntimeException;
@@ -94,6 +95,41 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * mode if desired
 	 */
 	private boolean readOnly = false;
+
+	/**
+	 * Configuration of iRODS host for proxy account
+	 */
+	private String irodsHost = "";
+
+	/**
+	 * Configuration of iRODS port for proxy account
+	 */
+	private int irodsPort = 1247;
+
+	/**
+	 * Configuration of iRODS zone for proxy account
+	 */
+	private String irodsZone = "";
+
+	/**
+	 * Configuration of iRODS default resource for proxy account
+	 */
+	private String irodsDefaultResource = "";
+
+	/**
+	 * Configuration of iRODS user for proxy account
+	 */
+	private String irodsUser = "";
+
+	/**
+	 * Configuration of iRODS password for proxy account
+	 */
+	private String irodsPassword = "";
+
+	/**
+	 * Configuration of iRODS auth type for proxy account STANDARD | PAM
+	 */
+	private String irodsAuthType = "STANDARD";
 
 	/**
 	 * Configuration flag that can cause AVU nodes to be added when creating or
@@ -448,17 +484,30 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	}
 
 	/**
-	 * FIXME: shim for authentication, add code to get from context with
-	 * pluggable auth
+	 * use the config info to get an irods proxy account
 	 * 
-	 * @return
+	 * @return {@link IRODSAccount}
 	 */
 	public IRODSAccount getIrodsAccount() {
 		try {
 
 			IRODSAccount irodsAccount = IRODSAccount.instance(
-					"fedzone1.irods.org", 1247, "test1", "test", "",
-					"fedZone1", "");
+					this.getIrodsHost(), this.getIrodsPort(),
+					this.getIrodsUser(), this.getIrodsPassword(), "",
+					this.getIrodsZone(), this.getIrodsDefaultResource());
+
+			if (this.getIrodsAuthType() == null
+					|| this.getIrodsAuthType().isEmpty()) {
+				log.info("normal auth");
+			} else if (this.getIrodsAuthType()
+					.equals(AuthScheme.PAM.toString())) {
+				log.info("auth type pam");
+				irodsAccount.setAuthenticationScheme(AuthScheme.PAM);
+			} else {
+				log.error("unknown auth type:{}", this.getIrodsAuthType());
+				throw new JargonRuntimeException("unknown auth type");
+			}
+
 			return irodsAccount;
 
 		} catch (JargonException e) {
@@ -643,6 +692,111 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		}
 
 		return this.readDocument(document);
+	}
+
+	/**
+	 * @return the irodsHost
+	 */
+	public String getIrodsHost() {
+		return irodsHost;
+	}
+
+	/**
+	 * @param irodsHost
+	 *            the irodsHost to set
+	 */
+	public void setIrodsHost(String irodsHost) {
+		this.irodsHost = irodsHost;
+	}
+
+	/**
+	 * @return the irodsPort
+	 */
+	public int getIrodsPort() {
+		return irodsPort;
+	}
+
+	/**
+	 * @param irodsPort
+	 *            the irodsPort to set
+	 */
+	public void setIrodsPort(int irodsPort) {
+		this.irodsPort = irodsPort;
+	}
+
+	/**
+	 * @return the irodsZone
+	 */
+	public String getIrodsZone() {
+		return irodsZone;
+	}
+
+	/**
+	 * @param irodsZone
+	 *            the irodsZone to set
+	 */
+	public void setIrodsZone(String irodsZone) {
+		this.irodsZone = irodsZone;
+	}
+
+	/**
+	 * @return the irodsDefaultResource
+	 */
+	public String getIrodsDefaultResource() {
+		return irodsDefaultResource;
+	}
+
+	/**
+	 * @param irodsDefaultResource
+	 *            the irodsDefaultResource to set
+	 */
+	public void setIrodsDefaultResource(String irodsDefaultResource) {
+		this.irodsDefaultResource = irodsDefaultResource;
+	}
+
+	/**
+	 * @return the irodsUser
+	 */
+	public String getIrodsUser() {
+		return irodsUser;
+	}
+
+	/**
+	 * @param irodsUser
+	 *            the irodsUser to set
+	 */
+	public void setIrodsUser(String irodsUser) {
+		this.irodsUser = irodsUser;
+	}
+
+	/**
+	 * @return the irodsPassword
+	 */
+	public String getIrodsPassword() {
+		return irodsPassword;
+	}
+
+	/**
+	 * @param irodsPassword
+	 *            the irodsPassword to set
+	 */
+	public void setIrodsPassword(String irodsPassword) {
+		this.irodsPassword = irodsPassword;
+	}
+
+	/**
+	 * @return the irodsAuthType
+	 */
+	public String getIrodsAuthType() {
+		return irodsAuthType;
+	}
+
+	/**
+	 * @param irodsAuthType
+	 *            the irodsAuthType to set
+	 */
+	public void setIrodsAuthType(String irodsAuthType) {
+		this.irodsAuthType = irodsAuthType;
 	}
 
 }

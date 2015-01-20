@@ -1,0 +1,19 @@
+//------------------------------------------------------------------------------
+// N A M E S P A C E S
+//------------------------------------------------------------------------------
+
+<irods='http://www.irods.org/jcr/irods/1.0'>
+
+
+//------------------------------------------------------------------------------
+// N O D E T Y P E S
+//------------------------------------------------------------------------------
+
+[irods:irodsobject]  mixin
++ avu (irods:avu) * protected
+
+
+[irods:avu] > nt:unstructured 
+- irods:avuAttribute (string) mandatory 
+- irods:avuValue (string) mandatory 
+- irods:avuUnit (string) mandatory

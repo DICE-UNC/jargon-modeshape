@@ -11,7 +11,7 @@
     },
     "storage" : {
         "cacheName" : "irods",
-        "cacheConfiguration" : "conf/infinispan.xml",        
+        "cacheConfiguration" : "opconf/infinispan.xml",        
         "binaryStorage" : {
             "type" : "file",
             "directory" : "irods/binaries",
@@ -40,7 +40,6 @@
         	"irodsDefaultResource":"test1-resc",
         	"irodsUser":"test1",
         	"irodsPassword":"test",
-        	"irodsAuthType":"STANDARD",
             "classname" : "org.irods.jargon.modeshape.connector.IrodsWriteableConnector",
             "directoryPath" : "/fedZone1/home/test1/jargon-scratch/ModeshapeConnectorRoot/ModeshapeConnectorRoot", 
             "projections" : [
@@ -55,7 +54,7 @@
         }
     },
     
-     "node-types" : ["conf/irods.cnd"]
+     "node-types" : ["opconf/irods.cnd"]
 }
 
 
