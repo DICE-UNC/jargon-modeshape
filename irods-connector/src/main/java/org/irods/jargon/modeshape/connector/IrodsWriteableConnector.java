@@ -499,6 +499,10 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			if (this.getIrodsAuthType() == null
 					|| this.getIrodsAuthType().isEmpty()) {
 				log.info("normal auth");
+			} else if (this.getIrodsAuthType().equals(
+					AuthScheme.STANDARD.toString())) {
+				log.info("normal auth");
+
 			} else if (this.getIrodsAuthType()
 					.equals(AuthScheme.PAM.toString())) {
 				log.info("auth type pam");

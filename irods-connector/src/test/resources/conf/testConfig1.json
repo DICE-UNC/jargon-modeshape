@@ -24,17 +24,10 @@
             "useOnFailedLogin" : true
         }
     },
-     "providers" : [
-        {
-            "name" : "irods",
-            "classname" : "org.irods.jargon.modeshape.connector.IrodsAuthenticationProvider"
-        }
-    ]
-    },
    
      "externalSources" : {
         "irods-modeshape" : {
-        	"irodsHost":"fedzone1.renci.org",
+        "irodsHost":"fedzone1.irods.org",
         	"irodsPort":1247,
         	"irodsZone":"fedZone1",
         	"irodsDefaultResource":"test1-resc",
@@ -57,5 +50,4 @@
     
      "node-types" : ["conf/irods.cnd"]
 }
-
 

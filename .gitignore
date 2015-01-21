@@ -11,7 +11,7 @@ ConnectorVersion.java
 .project
 .settings/
 target/
-jargon-modeshape/irods-connector/irods
+irods-connector/irods
 
 *.pydevproject
 .metadata

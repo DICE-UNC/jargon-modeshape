@@ -34,12 +34,13 @@
    
      "externalSources" : {
         "irods-modeshape" : {
-        	"irodsHost":"fedzone1.renci.org",
+        	 "irodsHost":"fedzone1.irods.org",
         	"irodsPort":1247,
         	"irodsZone":"fedZone1",
         	"irodsDefaultResource":"test1-resc",
         	"irodsUser":"test1",
         	"irodsPassword":"test",
+        	"irodsAuthType":"STANDARD",
             "classname" : "org.irods.jargon.modeshape.connector.IrodsWriteableConnector",
             "directoryPath" : "/fedZone1/home/test1/jargon-scratch/ModeshapeConnectorRoot/ModeshapeConnectorRoot", 
             "projections" : [
