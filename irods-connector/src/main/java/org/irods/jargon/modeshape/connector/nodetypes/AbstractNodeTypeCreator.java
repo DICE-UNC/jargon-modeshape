@@ -15,6 +15,8 @@ import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
+import org.modeshape.jcr.spi.federation.PageKey;
+import org.modeshape.jcr.spi.federation.PageWriter;
 import org.modeshape.jcr.value.ValueFactories;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +89,22 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 			throw new IllegalArgumentException("null or empty id");
 		}
 		return connector.createNewDocumentForId(id);
+
+	}
+
+	/**
+	 * Get a new <code>Document</code> for the id that supports paging
+	 * 
+	 * @param id
+	 *            <code>PageKey</code> with a modeshape id
+	 * @return {@link Document}
+	 */
+	protected PageWriter newPagingDocument(final PageKey pageKey) {
+		log.info("newPagingDocument()");
+		if (pageKey == null) {
+			throw new IllegalArgumentException("null pageKey");
+		}
+		return connector.createNewPagingDocumentForId(pageKey);
 
 	}
 
