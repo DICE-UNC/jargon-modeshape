@@ -104,9 +104,15 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	private Document instanceForIdAsCollection(final String id,
 			final IRODSFile file, final int offset) {
 		log.info("instanceForIdAsCollection()");
-		PageKey pageKey = new PageKey(id, "0", this
-				.getIrodsAccessObjectFactory().getJargonProperties()
-				.getMaxFilesAndDirsQueryMax());
+		PageKey pageKey;
+		try {
+			pageKey = new PageKey(id, String.valueOf(offset), this
+					.getIrodsAccessObjectFactory().getJargonProperties()
+					.getMaxFilesAndDirsQueryMax());
+		} catch (JargonException e) {
+			log.error("error bulding page key", e);
+			throw new DocumentStoreException("error building pageKey", e);
+		}
 		DocumentWriter writer = newPagingDocument(pageKey);
 		writer.setPrimaryType(PathUtilities.NT_FOLDER);
 		writer.addMixinType(PathUtilities.JCR_IRODS_IRODSOBJECT);

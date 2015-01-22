@@ -16,7 +16,6 @@ import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
 import org.modeshape.jcr.spi.federation.PageKey;
-import org.modeshape.jcr.spi.federation.PageWriter;
 import org.modeshape.jcr.value.ValueFactories;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,7 +98,7 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 *            <code>PageKey</code> with a modeshape id
 	 * @return {@link Document}
 	 */
-	protected PageWriter newPagingDocument(final PageKey pageKey) {
+	protected DocumentWriter newPagingDocument(final PageKey pageKey) {
 		log.info("newPagingDocument()");
 		if (pageKey == null) {
 			throw new IllegalArgumentException("null pageKey");

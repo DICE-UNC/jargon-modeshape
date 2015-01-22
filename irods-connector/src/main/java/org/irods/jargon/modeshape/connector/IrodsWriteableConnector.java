@@ -36,7 +36,6 @@ import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
 import org.modeshape.jcr.spi.federation.ExtraPropertiesStore;
 import org.modeshape.jcr.spi.federation.PageKey;
-import org.modeshape.jcr.spi.federation.PageWriter;
 import org.modeshape.jcr.spi.federation.Pageable;
 import org.modeshape.jcr.spi.federation.WritableConnector;
 import org.modeshape.jcr.value.Name;
@@ -564,13 +563,13 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param pageKey
 	 * @return
 	 */
-	public PageWriter createNewPagingDocumentForId(PageKey pageKey) {
+	public DocumentWriter createNewPagingDocumentForId(PageKey pageKey) {
 		log.info("createNewDocumentForId()");
 		if (pageKey == null) {
 			throw new IllegalArgumentException("null or empty pageKey");
 		}
 
-		return this.newPageDocument(pageKey);
+		return (DocumentWriter) this.newPageDocument(pageKey);
 	}
 
 	/**
