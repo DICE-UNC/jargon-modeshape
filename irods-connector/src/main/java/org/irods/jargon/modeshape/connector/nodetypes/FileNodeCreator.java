@@ -30,7 +30,6 @@ import org.modeshape.jcr.spi.federation.Connector.ExtraProperties;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
-import org.modeshape.jcr.spi.federation.PageKey;
 import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.Property;
 import org.slf4j.Logger;
@@ -104,16 +103,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	private Document instanceForIdAsCollection(final String id,
 			final IRODSFile file, final int offset) {
 		log.info("instanceForIdAsCollection()");
-		PageKey pageKey;
-		try {
-			pageKey = new PageKey(id, String.valueOf(offset), this
-					.getIrodsAccessObjectFactory().getJargonProperties()
-					.getMaxFilesAndDirsQueryMax());
-		} catch (JargonException e) {
-			log.error("error bulding page key", e);
-			throw new DocumentStoreException("error building pageKey", e);
-		}
-		DocumentWriter writer = newPagingDocument(pageKey);
+		DocumentWriter writer = newDocument(id);
 		writer.setPrimaryType(PathUtilities.NT_FOLDER);
 		writer.addMixinType(PathUtilities.JCR_IRODS_IRODSOBJECT);
 		writer.addProperty(PathUtilities.JCR_CREATED, factories()
