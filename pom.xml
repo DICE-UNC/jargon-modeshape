@@ -11,7 +11,7 @@
 	<url>https://code.renci.org/gf/project/jargon</url>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<jargon.version>4.0.2.1-SNAPSHOT</jargon.version>
+		<jargon.version>4.0.3.1-SNAPSHOT</jargon.version>
 		<findbugs.version>2.5.2</findbugs.version>
 		<modeshape.version>4.1.0.Final</modeshape.version>
 		<infinispan.version>6.0.2.Final</infinispan.version>

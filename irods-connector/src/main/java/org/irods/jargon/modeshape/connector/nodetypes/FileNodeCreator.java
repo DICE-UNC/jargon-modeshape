@@ -15,6 +15,7 @@ import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.FileNotFoundException;
 import org.irods.jargon.core.exception.JargonException;
 import org.irods.jargon.core.pub.CollectionAO;
+import org.irods.jargon.core.pub.CollectionPagerAO;
 import org.irods.jargon.core.pub.DataObjectAO;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
@@ -22,6 +23,7 @@ import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.core.pub.io.IRODSFileImpl;
 import org.irods.jargon.core.query.JargonQueryException;
 import org.irods.jargon.core.query.MetaDataAndDomainData;
+import org.irods.jargon.core.query.PagingAwareCollectionListing;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.irods.jargon.modeshape.connector.exceptions.IrodsConnectorRuntimeException;
@@ -115,11 +117,20 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		addAvuChildrenForCollection(file.getAbsolutePath(), id, writer);
 		log.info("AVU children added");
 
-		String[] children = file.list(this.getPathUtilities()
-				.getInclusionExclusionFilenameFilter());
+		//String[] children = file.list(this.getPathUtilities()
+			//	.getInclusionExclusionFilenameFilter());
 		long totalChildren = 0;
 		int nextOffset = 0;
 		log.info("parent is:{}", file.getAbsolutePath());
+		
+		CollectionPagerAO collectionPagerAO = this.getIrodsAccessObjectFactory().getCollectionPagerAO(getIrodsAccount());
+		
+		PagingAwareCollectionListing listing = collectionPagerAO.retrieveFirstPageUnderParent(file.getAbsolutePath());
+		log.info("got first listing:{}", listing);
+		
+		
+		
+		
 		for (int i = 0; i < children.length; i++) {
 			String child = children[i];
 

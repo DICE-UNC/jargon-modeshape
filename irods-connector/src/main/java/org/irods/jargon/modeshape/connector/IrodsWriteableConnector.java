@@ -154,7 +154,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	/**
 	 * The maximum number of children a folder will expose at any given time.
 	 */
-	public static final int PAGE_SIZE = 5000;
+	//public static final int PAGE_SIZE = 5000;
 
 	@Override
 	public Document getDocumentById(String id) {
