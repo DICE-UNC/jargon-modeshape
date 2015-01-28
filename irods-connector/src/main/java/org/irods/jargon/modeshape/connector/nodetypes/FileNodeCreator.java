@@ -129,7 +129,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		log.info("got first listing:{}", listing);
 		
 		
-		
+		for (listing.get)
 		
 		for (int i = 0; i < children.length; i++) {
 			String child = children[i];
