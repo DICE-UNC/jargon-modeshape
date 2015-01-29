@@ -55,7 +55,7 @@ public class ConnectorContext {
 	 * @param proxyAccount
 	 *            the proxyAccount to set
 	 */
-	public void setProxyAccount(IRODSAccount proxyAccount) {
+	public void setProxyAccount(final IRODSAccount proxyAccount) {
 		this.proxyAccount = proxyAccount;
 	}
 

@@ -64,7 +64,7 @@ public class FileFromIdConverterImpl extends AbstractJargonService implements
 
 		log.info("id:{}", id);
 
-		NodeTypeAndId nodeTypeAndId = this.pathUtilities.stripSuffixFromId(id);
+		NodeTypeAndId nodeTypeAndId = pathUtilities.stripSuffixFromId(id);
 
 		String strippedId = nodeTypeAndId.getId();
 		String parentPath = pathUtilities.getDirectoryPath();
@@ -72,9 +72,8 @@ public class FileFromIdConverterImpl extends AbstractJargonService implements
 		log.info("getting file for parent path:{}", parentPath);
 		log.info("child path:{}", strippedId);
 
-		IRODSFile file = this.getIrodsAccessObjectFactory()
-				.getIRODSFileFactory(getIrodsAccount())
-				.instanceIRODSFile(parentPath, strippedId);
+		IRODSFile file = getIrodsAccessObjectFactory().getIRODSFileFactory(
+				getIrodsAccount()).instanceIRODSFile(parentPath, strippedId);
 
 		return file;
 	}

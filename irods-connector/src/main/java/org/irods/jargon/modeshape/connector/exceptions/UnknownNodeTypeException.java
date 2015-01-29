@@ -21,7 +21,7 @@ public class UnknownNodeTypeException extends JargonException {
 	/**
 	 * @param message
 	 */
-	public UnknownNodeTypeException(String message) {
+	public UnknownNodeTypeException(final String message) {
 		super(message);
 	}
 
@@ -29,14 +29,14 @@ public class UnknownNodeTypeException extends JargonException {
 	 * @param message
 	 * @param cause
 	 */
-	public UnknownNodeTypeException(String message, Throwable cause) {
+	public UnknownNodeTypeException(final String message, final Throwable cause) {
 		super(message, cause);
 	}
 
 	/**
 	 * @param cause
 	 */
-	public UnknownNodeTypeException(Throwable cause) {
+	public UnknownNodeTypeException(final Throwable cause) {
 		super(cause);
 	}
 
@@ -45,8 +45,8 @@ public class UnknownNodeTypeException extends JargonException {
 	 * @param cause
 	 * @param underlyingIRODSExceptionCode
 	 */
-	public UnknownNodeTypeException(String message, Throwable cause,
-			int underlyingIRODSExceptionCode) {
+	public UnknownNodeTypeException(final String message,
+			final Throwable cause, final int underlyingIRODSExceptionCode) {
 		super(message, cause, underlyingIRODSExceptionCode);
 	}
 
@@ -54,8 +54,8 @@ public class UnknownNodeTypeException extends JargonException {
 	 * @param cause
 	 * @param underlyingIRODSExceptionCode
 	 */
-	public UnknownNodeTypeException(Throwable cause,
-			int underlyingIRODSExceptionCode) {
+	public UnknownNodeTypeException(final Throwable cause,
+			final int underlyingIRODSExceptionCode) {
 		super(cause, underlyingIRODSExceptionCode);
 	}
 
@@ -63,8 +63,8 @@ public class UnknownNodeTypeException extends JargonException {
 	 * @param message
 	 * @param underlyingIRODSExceptionCode
 	 */
-	public UnknownNodeTypeException(String message,
-			int underlyingIRODSExceptionCode) {
+	public UnknownNodeTypeException(final String message,
+			final int underlyingIRODSExceptionCode) {
 		super(message, underlyingIRODSExceptionCode);
 	}
 

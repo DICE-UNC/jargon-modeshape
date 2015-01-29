@@ -52,10 +52,11 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 	 * @param connector
 	 */
 	public ContentNodeCreator(
-			IRODSAccessObjectFactory irodsAccessObjectFactory,
-			IRODSAccount irodsAccount, IrodsWriteableConnector connector) {
+			final IRODSAccessObjectFactory irodsAccessObjectFactory,
+			final IRODSAccount irodsAccount,
+			final IrodsWriteableConnector connector) {
 		super(irodsAccessObjectFactory, irodsAccount, connector);
-		this.fileFromIdConverter = new FileFromIdConverterImpl(
+		fileFromIdConverter = new FileFromIdConverterImpl(
 				irodsAccessObjectFactory, irodsAccount,
 				connector.getPathUtilities());
 	}
@@ -68,7 +69,7 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 	 * #instanceForId(java.lang.String, int)
 	 */
 	@Override
-	public Document instanceForId(String id, int offset)
+	public Document instanceForId(final String id, final int offset)
 			throws RepositoryException {
 		log.info("instanceForId()");
 		if (id == null || id.isEmpty()) {
@@ -87,7 +88,7 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 			log.error("error getting file from id", e);
 			throw new RepositoryException("error getting file", e);
 		}
-		if (this.getPathUtilities().isExcluded(file)) {
+		if (getPathUtilities().isExcluded(file)) {
 			log.info("file is excluded by filter or does not exist..return null");
 			return null;
 		}
@@ -96,7 +97,7 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 		BinaryValue binaryValue = createBinaryValue(file, id);
 		writer.setPrimaryType(PathUtilities.NT_RESOURCE);
 		writer.addProperty(PathUtilities.JCR_DATA, binaryValue);
-		if (this.getConnector().isAddMimeTypeMixin()) {
+		if (getConnector().isAddMimeTypeMixin()) {
 			String mimeType = null;
 			String encoding = null; // We don't really know this
 			try {
@@ -121,13 +122,13 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 
 		if (!PathUtilities.isRoot(trimmedId)) {
 			// Set the reference to the parent ...
-			String parentId = this.getPathUtilities().idFor(file);
+			String parentId = getPathUtilities().idFor(file);
 			writer.setParents(parentId);
 		}
 
 		// Add the 'mix:mixinType' mixin; if other mixins are stored in the
 		// extra properties, this will append ...
-		if (this.getConnector().isAddMimeTypeMixin()) {
+		if (getConnector().isAddMimeTypeMixin()) {
 			writer.addMixinType(MIX_MIME_TYPE);
 		}
 
@@ -156,11 +157,11 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 		assert file != null;
 		log.info("file:{}", file);
 
-		return new IrodsBinaryValue(this.getPathUtilities().sha1(file), this
-				.getConnector().getSourceName(), file.getAbsolutePath(),
-				file.length(), file.getName(), this.getConnector()
-						.getMimeTypeDetector(),
-				this.getIrodsAccessObjectFactory(), this.getIrodsAccount());
+		return new IrodsBinaryValue(getPathUtilities().sha1(file),
+				getConnector().getSourceName(), file.getAbsolutePath(),
+				file.length(), file.getName(), getConnector()
+						.getMimeTypeDetector(), getIrodsAccessObjectFactory(),
+				getIrodsAccount());
 	}
 
 	/*
@@ -171,20 +172,20 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 	 * #store(org.infinispan.schematic.document.Document)
 	 */
 	@Override
-	public void store(Document document) {
+	public void store(final Document document) {
 		log.info("store()");
 
 		if (document == null) {
 			throw new IllegalArgumentException("null document");
 		}
 
-		DocumentReader reader = this.getConnector()
+		DocumentReader reader = getConnector()
 				.produceDocumentReaderFromDocument(document);
 		String id = reader.getDocumentId();
 		log.info("file to store:{}", id);
 		FileFromIdConverter converter = new FileFromIdConverterImpl(
-				this.getIrodsAccessObjectFactory(), this.getIrodsAccount(),
-				this.getPathUtilities());
+				getIrodsAccessObjectFactory(), getIrodsAccount(),
+				getPathUtilities());
 		IRODSFile file;
 		try {
 			file = converter.fileFor(id);
@@ -192,7 +193,7 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 			log.error("jargonException getting file for storing folder", e);
 			throw new DocumentStoreException(id, "unable to get file for store");
 		}
-		if (this.isExcluded((File) file)) {
+		if (isExcluded((File) file)) {
 			throw new DocumentStoreException(id, "file is excluded");
 		}
 		File parent = file.getParentFile();
@@ -205,7 +206,7 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 		}
 
 		Map<Name, Property> properties = reader.getProperties();
-		ExtraProperties extraProperties = this.getConnector()
+		ExtraProperties extraProperties = getConnector()
 				.retrieveExtraPropertiesForId(id, false);
 		extraProperties.addAll(properties).except(
 				PathUtilities.JCR_PRIMARY_TYPE, PathUtilities.JCR_CREATED,
@@ -219,7 +220,7 @@ public class ContentNodeCreator extends AbstractNodeTypeCreator {
 
 		OutputStream ostream;
 		try {
-			ostream = new BufferedOutputStream(this.getConnector()
+			ostream = new BufferedOutputStream(getConnector()
 					.getIrodsFileSystem().getIRODSAccessObjectFactory()
 					.getIRODSFileFactory(getIrodsAccount())
 					.instanceSessionClosingIRODSFileOutputStream(irodsFile));

@@ -33,7 +33,7 @@ public class NodeTypeAndId {
 	 * @param id
 	 *            the id to set
 	 */
-	public void setId(String id) {
+	public void setId(final String id) {
 		this.id = id;
 	}
 
@@ -48,7 +48,7 @@ public class NodeTypeAndId {
 	 * @param irodsNodeType
 	 *            the irodsNodeType to set
 	 */
-	public void setIrodsNodeType(IrodsNodeTypes irodsNodeType) {
+	public void setIrodsNodeType(final IrodsNodeTypes irodsNodeType) {
 		this.irodsNodeType = irodsNodeType;
 	}
 

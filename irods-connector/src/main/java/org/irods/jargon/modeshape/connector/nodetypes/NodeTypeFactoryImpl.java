@@ -43,8 +43,8 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 	 *            {@link PathUtilities}
 	 */
 	public NodeTypeFactoryImpl(
-			IRODSAccessObjectFactory irodsAccessObjectFactory,
-			IRODSAccount irodsAccount,
+			final IRODSAccessObjectFactory irodsAccessObjectFactory,
+			final IRODSAccount irodsAccount,
 			final IrodsWriteableConnector irodsWriteableConnector) {
 		super(irodsAccessObjectFactory, irodsAccount);
 
@@ -115,8 +115,9 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 	 * instanceCreatorForDocument(org.infinispan.schematic.document.Document)
 	 */
 	@Override
-	public AbstractNodeTypeCreator instanceCreatorForDocument(Document document)
-			throws UnknownNodeTypeException, RepositoryException {
+	public AbstractNodeTypeCreator instanceCreatorForDocument(
+			final Document document) throws UnknownNodeTypeException,
+			RepositoryException {
 
 		log.info("instanceCreatorForDocument()");
 
@@ -124,7 +125,7 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 			throw new IllegalArgumentException("document is null");
 		}
 
-		DocumentReader documentReader = this.irodsWriteableConnector
+		DocumentReader documentReader = irodsWriteableConnector
 				.produceDocumentReaderFromDocument(document);
 
 		String primaryType = documentReader.getPrimaryTypeName();
@@ -158,8 +159,8 @@ public class NodeTypeFactoryImpl extends AbstractJargonService implements
 	 */
 	@Override
 	public AbstractNodeTypeCreator instanceCreatorForDocumentChanges(
-			DocumentChanges documentChanges) throws UnknownNodeTypeException,
-			RepositoryException {
+			final DocumentChanges documentChanges)
+			throws UnknownNodeTypeException, RepositoryException {
 
 		log.info("instanceCreatorForDocumentChanges()");
 

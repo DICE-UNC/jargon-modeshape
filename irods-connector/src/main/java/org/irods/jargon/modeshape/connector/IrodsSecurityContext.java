@@ -55,7 +55,7 @@ public class IrodsSecurityContext implements SecurityContext {
 	 * @see org.modeshape.jcr.security.SecurityContext#hasRole(java.lang.String)
 	 */
 	@Override
-	public boolean hasRole(String roleName) {
+	public boolean hasRole(final String roleName) {
 		// TODO: equate user group to role? Noop for now.
 		return true;
 	}

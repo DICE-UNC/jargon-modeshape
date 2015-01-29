@@ -28,14 +28,14 @@ public class IrodsConnectorRuntimeException extends JargonRuntimeException {
 	/**
 	 * @param arg0
 	 */
-	public IrodsConnectorRuntimeException(String arg0) {
+	public IrodsConnectorRuntimeException(final String arg0) {
 		super(arg0);
 	}
 
 	/**
 	 * @param arg0
 	 */
-	public IrodsConnectorRuntimeException(Throwable arg0) {
+	public IrodsConnectorRuntimeException(final Throwable arg0) {
 		super(arg0);
 	}
 
@@ -43,7 +43,8 @@ public class IrodsConnectorRuntimeException extends JargonRuntimeException {
 	 * @param arg0
 	 * @param arg1
 	 */
-	public IrodsConnectorRuntimeException(String arg0, Throwable arg1) {
+	public IrodsConnectorRuntimeException(final String arg0,
+			final Throwable arg1) {
 		super(arg0, arg1);
 	}
 

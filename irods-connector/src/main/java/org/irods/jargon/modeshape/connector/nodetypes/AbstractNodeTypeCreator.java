@@ -45,8 +45,9 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 *            {@link PathUtilities}
 	 */
 	public AbstractNodeTypeCreator(
-			IRODSAccessObjectFactory irodsAccessObjectFactory,
-			IRODSAccount irodsAccount, final IrodsWriteableConnector connector) {
+			final IRODSAccessObjectFactory irodsAccessObjectFactory,
+			final IRODSAccount irodsAccount,
+			final IrodsWriteableConnector connector) {
 		super(irodsAccessObjectFactory, irodsAccount);
 
 		if (connector == null) {
@@ -122,7 +123,7 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 * @return <code>boolean</code> of true if mimetypemixin should be added
 	 */
 	protected boolean isAddMimeTypeMixin() {
-		return this.connector.isAddMimeTypeMixin();
+		return connector.isAddMimeTypeMixin();
 	}
 
 	/**
@@ -131,7 +132,7 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 * @return <code>boolean</code> of true if avus should be added
 	 */
 	protected boolean isIncludeAvus() {
-		return this.connector.isAddAvus();
+		return connector.isAddAvus();
 	}
 
 	/**
@@ -184,8 +185,8 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 * @return
 	 */
 	protected boolean isExcluded(final File file) {
-		return !this.getConnector().getFilenameFilter()
-				.accept(file.getParentFile(), file.getName());
+		return !getConnector().getFilenameFilter().accept(file.getParentFile(),
+				file.getName());
 	}
 
 }
