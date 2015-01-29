@@ -17,7 +17,7 @@ public enum IrodsNodeTypes {
 
 	private String nodeTypeIdSuffix;
 
-	IrodsNodeTypes(String nodeTypeIdSuffix) {
+	IrodsNodeTypes(final String nodeTypeIdSuffix) {
 		this.nodeTypeIdSuffix = nodeTypeIdSuffix;
 	}
 
@@ -57,7 +57,8 @@ public enum IrodsNodeTypes {
 	 * @param irodsNodeType
 	 * @return
 	 */
-	public static String buildSuffixWithDelimiter(IrodsNodeTypes irodsNodeType) {
+	public static String buildSuffixWithDelimiter(
+			final IrodsNodeTypes irodsNodeType) {
 		if (irodsNodeType == null) {
 			throw new IllegalArgumentException("null irodsNodeType");
 		}

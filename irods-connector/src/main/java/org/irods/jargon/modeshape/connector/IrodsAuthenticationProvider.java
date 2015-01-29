@@ -52,10 +52,10 @@ public class IrodsAuthenticationProvider implements AuthenticationProvider {
 	 * org.modeshape.jcr.ExecutionContext, java.util.Map)
 	 */
 	@Override
-	public ExecutionContext authenticate(Credentials credentials,
-			String repositoryName, String workspaceName,
-			ExecutionContext repositoryContext,
-			Map<String, Object> sessionAttributes) {
+	public ExecutionContext authenticate(final Credentials credentials,
+			final String repositoryName, final String workspaceName,
+			final ExecutionContext repositoryContext,
+			final Map<String, Object> sessionAttributes) {
 
 		log.info("authenticate()");
 

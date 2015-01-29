@@ -117,9 +117,9 @@ public class PathUtilities {
 		this.directoryPath = directoryPath;
 		this.inclusionExclusionFilenameFilter = inclusionExclusionFilenameFilter;
 
-		this.directoryPathWithTrailingSlash = directoryPath + "/";
-		this.directoryAbsolutePathLength = directoryPathWithTrailingSlash
-				.length() - DELIMITER.length();
+		directoryPathWithTrailingSlash = directoryPath + "/";
+		directoryAbsolutePathLength = directoryPathWithTrailingSlash.length()
+				- DELIMITER.length();
 		this.irodsWriteableConnector = irodsWriteableConnector;
 	}
 
@@ -206,8 +206,8 @@ public class PathUtilities {
 			return true;
 		}
 
-		if (this.getInclusionExclusionFilenameFilter().accept(
-				file.getParentFile(), file.getName())) {
+		if (getInclusionExclusionFilenameFilter().accept(file.getParentFile(),
+				file.getName())) {
 			return false;
 		} else {
 
@@ -324,7 +324,7 @@ public class PathUtilities {
 			myId = id.substring(0, id.length() - DELIMITER.length());
 		}
 
-		IrodsNodeTypes nodeType = this.getNodeTypeForId(myId);
+		IrodsNodeTypes nodeType = getNodeTypeForId(myId);
 
 		switch (nodeType) {
 		case CONTENT_NODE:

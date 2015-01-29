@@ -108,7 +108,7 @@ public class IrodsBinaryValue extends ExternalBinaryValue {
 	 * .String)
 	 */
 	@Override
-	protected void setMimeType(String mimeType) {
+	protected void setMimeType(final String mimeType) {
 		log.debug("setMimeType(): {}", mimeType);
 		super.setMimeType(mimeType);
 	}
@@ -141,7 +141,7 @@ public class IrodsBinaryValue extends ExternalBinaryValue {
 	 * .String)
 	 */
 	@Override
-	public String getMimeType(String name) {
+	public String getMimeType(final String name) {
 		return super.getMimeType(name);
 	}
 
