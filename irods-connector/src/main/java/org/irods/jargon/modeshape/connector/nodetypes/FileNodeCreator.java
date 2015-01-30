@@ -133,10 +133,6 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		addAvuChildrenForCollection(file.getAbsolutePath(), id, writer);
 		log.info("AVU children added");
 
-		// String[] children = file.list(this.getPathUtilities()
-		// .getInclusionExclusionFilenameFilter());
-		int nextOffset = 0;
-		int i = 0;
 		log.info("parent is:{}", file.getAbsolutePath());
 
 		CollectionPagerAO collectionPagerAO = getIrodsAccessObjectFactory()
