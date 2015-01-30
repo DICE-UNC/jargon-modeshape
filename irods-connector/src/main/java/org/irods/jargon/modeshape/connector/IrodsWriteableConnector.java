@@ -132,11 +132,6 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	private String irodsAuthType = "STANDARD";
 
 	/**
-	 * Configuration of page sizes for children nodes
-	 */
-	private int pageSize = 1000;
-
-	/**
 	 * Configuration flag that can cause AVU nodes to be added when creating or
 	 * reading documents
 	 */
@@ -820,12 +815,5 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		this.irodsAuthType = irodsAuthType;
 	}
 
-	public int getPageSize() {
-		return pageSize;
-	}
-
-	public void setPageSize(final int pageSize) {
-		this.pageSize = pageSize;
-	}
 
 }

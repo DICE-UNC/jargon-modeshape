@@ -14,6 +14,7 @@ import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.FileNotFoundException;
 import org.irods.jargon.core.exception.JargonException;
+import org.irods.jargon.core.exception.JargonRuntimeException;
 import org.irods.jargon.core.pub.CollectionAO;
 import org.irods.jargon.core.pub.CollectionPagerAO;
 import org.irods.jargon.core.pub.DataObjectAO;
@@ -33,6 +34,7 @@ import org.modeshape.jcr.spi.federation.Connector.ExtraProperties;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
+import org.modeshape.jcr.spi.federation.PageWriter;
 import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.Property;
 import org.slf4j.Logger;
@@ -53,6 +55,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			.length();
 
 	private final FileFromIdConverter fileFromIdConverter;
+	private final int pageSize;
 
 	public FileNodeCreator(
 			final IRODSAccessObjectFactory irodsAccessObjectFactory,
@@ -63,6 +66,12 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		fileFromIdConverter = new FileFromIdConverterImpl(
 				irodsAccessObjectFactory, irodsAccount,
 				irodsWriteableConnector.getPathUtilities());
+		try {
+			this.pageSize = irodsAccessObjectFactory.getJargonProperties().getMaxFilesAndDirsQueryMax();
+		} catch (JargonException e) {
+			log.error("cannot get jargon properties", e);
+			throw new JargonRuntimeException("cannot get jargon properties", e);
+		}
 
 	}
 
@@ -99,13 +108,18 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		if (file.isFile()) {
 			return instanceForIdAsFile(id, file);
 		} else {
-			return instanceForIdAsCollection(id, file, offset);
+			try {
+				return instanceForIdAsCollection(id, file, offset);
+			} catch (JargonException e) {
+				log.error("error in jargon creating collection", e);
+				throw new RepositoryException("error creating collection", e);
+			}
 		}
 
 	}
 
 	private Document instanceForIdAsCollection(final String id,
-			final IRODSFile file, final int offset) {
+			final IRODSFile file, final int offset) throws JargonException {
 		log.info("instanceForIdAsCollection()");
 		DocumentWriter writer = newDocument(id);
 		writer.setPrimaryType(PathUtilities.NT_FOLDER);
@@ -121,7 +135,6 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 
 		// String[] children = file.list(this.getPathUtilities()
 		// .getInclusionExclusionFilenameFilter());
-		long totalChildren = 0;
 		int nextOffset = 0;
 		int i = 0;
 		log.info("parent is:{}", file.getAbsolutePath());
@@ -132,26 +145,12 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		PagingAwareCollectionListing listing = collectionPagerAO
 				.retrieveFirstPageUnderParent(file.getAbsolutePath());
 		log.info("got first listing:{}", listing);
-<<<<<<< HEAD
-		
-		
-		for (listing.get)
-		
-		for (int i = 0; i < children.length; i++) {
-			String child = children[i];
 
-			// we need to count the total accessible children
-=======
 
 		for (CollectionAndDataObjectListingEntry entry : listing
 				.getCollectionAndDataObjectListingEntries()) {
->>>>>>> 65dde1d8ac72cd88a96875e8334121edec3810c1
-			totalChildren++;
-			i++;
-			if (i >= offset && i < offset + this.getConnector().getPageSize()) {
-				// We use identifiers that contain the file/directory name
-				// ...
-				// String childName = child.getName();
+			
+			
 				String childId = PathUtilities.isRoot(id) ? PathUtilities.DELIMITER
 						+ entry.getNodeLabelDisplayValue()
 						: id + PathUtilities.DELIMITER
@@ -162,17 +161,21 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 				log.info("added child directory with name:{}",
 						entry.getNodeLabelDisplayValue());
 
+		}
+		
+		if (listing.getPagingAwareCollectionListingDescriptor().hasMore()) {
+			log.info("signal paging...");
+			
+			long totalSize = listing.getPagingAwareCollectionListingDescriptor().computeAbsoluteTotalSize();
+			if (totalSize == 0) {
+				totalSize = PageWriter.UNKNOWN_TOTAL_SIZE;
 			}
-			nextOffset = i + 1;
-
+			
+			writer.addPage(id, listing.getPagingAwareCollectionListingDescriptor().computeAbsoluteNextOffset(), this.pageSize,
+					totalSize);
+			
 		}
 
-
-		// if there are still accessible children add the next page
-		if (nextOffset < totalChildren) {
-			writer.addPage(id, nextOffset, IrodsWriteableConnector.PAGE_SIZE,
-					totalChildren);
-		}
 
 		if (!PathUtilities.isRoot(id)) {
 			// Set the reference to the parent ...
