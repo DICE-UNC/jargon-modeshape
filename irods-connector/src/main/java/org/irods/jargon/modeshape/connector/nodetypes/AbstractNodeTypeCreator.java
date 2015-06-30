@@ -15,6 +15,7 @@ import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
+import org.modeshape.jcr.spi.federation.PageKey;
 import org.modeshape.jcr.value.ValueFactories;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,8 +45,9 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 *            {@link PathUtilities}
 	 */
 	public AbstractNodeTypeCreator(
-			IRODSAccessObjectFactory irodsAccessObjectFactory,
-			IRODSAccount irodsAccount, final IrodsWriteableConnector connector) {
+			final IRODSAccessObjectFactory irodsAccessObjectFactory,
+			final IRODSAccount irodsAccount,
+			final IrodsWriteableConnector connector) {
 		super(irodsAccessObjectFactory, irodsAccount);
 
 		if (connector == null) {
@@ -91,6 +93,22 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	}
 
 	/**
+	 * Get a new <code>Document</code> for the id that supports paging
+	 * 
+	 * @param id
+	 *            <code>PageKey</code> with a modeshape id
+	 * @return {@link Document}
+	 */
+	protected DocumentWriter newPagingDocument(final PageKey pageKey) {
+		log.info("newPagingDocument()");
+		if (pageKey == null) {
+			throw new IllegalArgumentException("null pageKey");
+		}
+		return connector.createNewPagingDocumentForId(pageKey);
+
+	}
+
+	/**
 	 * Get <code>ValueFactories</code> from the connector
 	 * 
 	 * @return {@link ValueFactories}
@@ -105,7 +123,7 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 * @return <code>boolean</code> of true if mimetypemixin should be added
 	 */
 	protected boolean isAddMimeTypeMixin() {
-		return this.connector.isAddMimeTypeMixin();
+		return connector.isAddMimeTypeMixin();
 	}
 
 	/**
@@ -114,7 +132,7 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 * @return <code>boolean</code> of true if avus should be added
 	 */
 	protected boolean isIncludeAvus() {
-		return this.connector.isAddAvus();
+		return connector.isAddAvus();
 	}
 
 	/**
@@ -167,8 +185,8 @@ public abstract class AbstractNodeTypeCreator extends AbstractJargonService {
 	 * @return
 	 */
 	protected boolean isExcluded(final File file) {
-		return !this.getConnector().getFilenameFilter()
-				.accept(file.getParentFile(), file.getName());
+		return !getConnector().getFilenameFilter().accept(file.getParentFile(),
+				file.getName());
 	}
 
 }

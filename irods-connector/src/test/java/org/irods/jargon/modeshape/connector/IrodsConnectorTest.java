@@ -64,7 +64,6 @@ public class IrodsConnectorTest {
 	public static final Logger log = LoggerFactory
 			.getLogger(IrodsConnectorTest.class);
 	private static Properties testingProperties = new Properties();
-	@SuppressWarnings("unused")
 	private static TestingPropertiesHelper testingPropertiesHelper = new TestingPropertiesHelper();
 	private static Session session;
 	private static ScratchFileUtils scratchFileUtils = null;

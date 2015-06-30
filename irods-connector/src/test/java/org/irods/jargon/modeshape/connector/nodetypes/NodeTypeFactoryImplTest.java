@@ -7,6 +7,8 @@ import junit.framework.Assert;
 import org.infinispan.schematic.document.Document;
 import org.infinispan.schematic.document.EditableDocument;
 import org.irods.jargon.core.connection.IRODSAccount;
+import org.irods.jargon.core.connection.JargonProperties;
+import org.irods.jargon.core.connection.SettableJargonProperties;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.core.pub.io.IRODSFileFactory;
@@ -34,6 +36,8 @@ public class NodeTypeFactoryImplTest {
 				.mock(IRODSAccessObjectFactory.class);
 		IRODSAccount irodsAccount = IRODSAccount.instance("host", 1247, "user",
 				"password", "", "zone", "");
+		JargonProperties jargonProperties = new SettableJargonProperties();
+		Mockito.when(irodsAccessObjectFactory.getJargonProperties()).thenReturn(jargonProperties);
 
 		IRODSFileFactory irodsFileFactory = Mockito
 				.mock(IRODSFileFactory.class);

@@ -154,10 +154,10 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	/**
 	 * The maximum number of children a folder will expose at any given time.
 	 */
-	public static final int PAGE_SIZE = 5000;
+	// public static final int PAGE_SIZE = 5000;
 
 	@Override
-	public Document getDocumentById(String id) {
+	public Document getDocumentById(final String id) {
 
 		try {
 			log.info("getDocumentById()");
@@ -213,8 +213,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 		try {
 			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
-					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
-					this.getIrodsAccount(), this.pathUtilities);
+					getIrodsFileSystem().getIRODSAccessObjectFactory(),
+					getIrodsAccount(), pathUtilities);
 
 			IRODSFile irodsFile = fileFromIdConverter.fileFor(path);
 			return irodsFile.exists() ? path : null;
@@ -227,7 +227,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	}
 
 	@Override
-	public Collection<String> getDocumentPathsById(String id) {
+	public Collection<String> getDocumentPathsById(final String id) {
 		log.info("getDocumentPathsById()");
 		if (id == null) {
 			throw new IllegalArgumentException("null id");
@@ -238,7 +238,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	}
 
 	@Override
-	public boolean hasDocument(String id) {
+	public boolean hasDocument(final String id) {
 		log.info("hasDocument()");
 		if (id == null) {
 			throw new IllegalArgumentException("null id");
@@ -247,8 +247,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 		try {
 			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
-					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
-					this.getIrodsAccount(), this.pathUtilities);
+					getIrodsFileSystem().getIRODSAccessObjectFactory(),
+					getIrodsAccount(), pathUtilities);
 			return fileFromIdConverter.fileFor(id).exists();
 		} catch (JargonException e) {
 			log.error("jargon error getting file from id", e);
@@ -298,7 +298,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 */
 
 	@Override
-	public boolean removeDocument(String id) {
+	public boolean removeDocument(final String id) {
 		log.info("removeDocument()");
 		if (id == null) {
 			throw new IllegalArgumentException("null id");
@@ -306,8 +306,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 		try {
 			log.info("id:{}", id);
 			FileFromIdConverter fileFromIdConverter = new FileFromIdConverterImpl(
-					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
-					this.getIrodsAccount(), this.pathUtilities);
+					getIrodsFileSystem().getIRODSAccessObjectFactory(),
+					getIrodsAccount(), pathUtilities);
 			IRODSFile file = fileFromIdConverter.fileFor(id);
 			checkFileNotExcluded(id, (File) file);
 			// Remove the extra properties at the old location ...
@@ -334,7 +334,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * .schematic.document.Document)
 	 */
 	@Override
-	public void storeDocument(Document document) {
+	public void storeDocument(final Document document) {
 		log.info("storeDocument()");
 		if (document == null) {
 			throw new IllegalArgumentException("null document");
@@ -365,7 +365,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * .jcr.spi.federation.DocumentChanges)
 	 */
 	@Override
-	public void updateDocument(DocumentChanges documentChanges) {
+	public void updateDocument(final DocumentChanges documentChanges) {
 		log.info("updateDocument()");
 		if (documentChanges == null) {
 			throw new IllegalArgumentException("null documentChanges");
@@ -401,7 +401,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param addMimeTypeMixin
 	 *            the addMimeTypeMixin to set
 	 */
-	public void setAddMimeTypeMixin(boolean addMimeTypeMixin) {
+	public void setAddMimeTypeMixin(final boolean addMimeTypeMixin) {
 		this.addMimeTypeMixin = addMimeTypeMixin;
 	}
 
@@ -416,7 +416,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param inclusionPattern
 	 *            the inclusionPattern to set
 	 */
-	public void setInclusionPattern(String inclusionPattern) {
+	public void setInclusionPattern(final String inclusionPattern) {
 		this.inclusionPattern = inclusionPattern;
 	}
 
@@ -431,7 +431,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param exclusionPattern
 	 *            the exclusionPattern to set
 	 */
-	public void setExclusionPattern(String exclusionPattern) {
+	public void setExclusionPattern(final String exclusionPattern) {
 		this.exclusionPattern = exclusionPattern;
 	}
 
@@ -446,7 +446,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param readOnly
 	 *            the readOnly to set
 	 */
-	public void setReadOnly(boolean readOnly) {
+	public void setReadOnly(final boolean readOnly) {
 		this.readOnly = readOnly;
 	}
 
@@ -457,29 +457,31 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * NamespaceRegistry, org.modeshape.jcr.api.nodetype.NodeTypeManager)
 	 */
 	@Override
-	public void initialize(NamespaceRegistry registry,
-			NodeTypeManager nodeTypeManager) throws RepositoryException,
+	public void initialize(final NamespaceRegistry registry,
+			final NodeTypeManager nodeTypeManager) throws RepositoryException,
 			IOException {
 		try {
 			super.initialize(registry, nodeTypeManager);
 
-			this.irodsFileSystem = IRODSFileSystemSingletonWrapper.instance();
+			irodsFileSystem = IRODSFileSystemSingletonWrapper.instance();
 
 			checkFieldNotNull(directoryPath, "directoryPath");
 
 			// Initialize the filename filter ...
 			filenameFilter = new InclusionExclusionFilenameFilter();
-			if (exclusionPattern != null)
+			if (exclusionPattern != null) {
 				filenameFilter.setExclusionPattern(exclusionPattern);
-			if (inclusionPattern != null)
+			}
+			if (inclusionPattern != null) {
 				filenameFilter.setInclusionPattern(inclusionPattern);
+			}
 
-			this.pathUtilities = new PathUtilities(directoryPath,
-					filenameFilter, this);
+			pathUtilities = new PathUtilities(directoryPath, filenameFilter,
+					this);
 
 			log.info("initialized");
 		} finally {
-			this.getIrodsFileSystem().closeAndEatExceptions();
+			getIrodsFileSystem().closeAndEatExceptions();
 		}
 	}
 
@@ -491,24 +493,21 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	public IRODSAccount getIrodsAccount() {
 		try {
 
-			IRODSAccount irodsAccount = IRODSAccount.instance(
-					this.getIrodsHost(), this.getIrodsPort(),
-					this.getIrodsUser(), this.getIrodsPassword(), "",
-					this.getIrodsZone(), this.getIrodsDefaultResource());
+			IRODSAccount irodsAccount = IRODSAccount.instance(getIrodsHost(),
+					getIrodsPort(), getIrodsUser(), getIrodsPassword(), "",
+					getIrodsZone(), getIrodsDefaultResource());
 
-			if (this.getIrodsAuthType() == null
-					|| this.getIrodsAuthType().isEmpty()) {
+			if (getIrodsAuthType() == null || getIrodsAuthType().isEmpty()) {
 				log.info("normal auth");
-			} else if (this.getIrodsAuthType().equals(
-					AuthScheme.STANDARD.toString())) {
+			} else if (getIrodsAuthType()
+					.equals(AuthScheme.STANDARD.toString())) {
 				log.info("normal auth");
 
-			} else if (this.getIrodsAuthType()
-					.equals(AuthScheme.PAM.toString())) {
+			} else if (getIrodsAuthType().equals(AuthScheme.PAM.toString())) {
 				log.info("auth type pam");
 				irodsAccount.setAuthenticationScheme(AuthScheme.PAM);
 			} else {
-				log.error("unknown auth type:{}", this.getIrodsAuthType());
+				log.error("unknown auth type:{}", getIrodsAuthType());
 				throw new JargonRuntimeException("unknown auth type");
 			}
 
@@ -530,7 +529,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param directoryPath
 	 *            the directoryPath to set
 	 */
-	public void setDirectoryPath(String directoryPath) {
+	public void setDirectoryPath(final String directoryPath) {
 		this.directoryPath = directoryPath;
 	}
 
@@ -553,8 +552,23 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			throw new IllegalArgumentException("null or empty id");
 		}
 
-		return this.newDocument(id);
+		return newDocument(id);
 
+	}
+
+	/**
+	 * Create a document that supports paging
+	 * 
+	 * @param pageKey
+	 * @return
+	 */
+	public DocumentWriter createNewPagingDocumentForId(final PageKey pageKey) {
+		log.info("createNewDocumentForId()");
+		if (pageKey == null) {
+			throw new IllegalArgumentException("null or empty pageKey");
+		}
+
+		return (DocumentWriter) newPageDocument(pageKey);
 	}
 
 	/**
@@ -564,14 +578,14 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 *         <code>factories()</code> method of a connector
 	 */
 	public ValueFactories obtainHandleToFactories() {
-		return this.factories();
+		return factories();
 	}
 
 	public boolean isAddAvus() {
 		return addAvus;
 	}
 
-	public void setAddAvus(boolean addAvus) {
+	public void setAddAvus(final boolean addAvus) {
 		this.addAvus = addAvus;
 	}
 
@@ -581,15 +595,15 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @return {@link IRODSFileSystem}
 	 */
 	public IRODSFileSystem getIrodsFileSystem() {
-		return this.irodsFileSystem;
+		return irodsFileSystem;
 	}
 
 	public void setIrodsFileSystem(final IRODSFileSystem irodsFileSystem) {
-		this.setIrodsFileSystem(irodsFileSystem);
+		setIrodsFileSystem(irodsFileSystem);
 	}
 
 	@Override
-	public Document getChildren(PageKey pageKey) {
+	public Document getChildren(final PageKey pageKey) {
 		log.info("getChildren()");
 		return null;
 	}
@@ -605,7 +619,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			throw new IllegalArgumentException("null irodsAcount");
 		}
 
-		return new NodeTypeFactoryImpl(this.getIrodsFileSystem()
+		return new NodeTypeFactoryImpl(getIrodsFileSystem()
 				.getIRODSAccessObjectFactory(), irodsAccount, this);
 	}
 
@@ -636,16 +650,14 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 		try {
 
-			IRODSFile file = this.getIrodsFileSystem()
-					.getIRODSAccessObjectFactory()
+			IRODSFile file = getIrodsFileSystem().getIRODSAccessObjectFactory()
 					.getIRODSFileFactory(getIrodsAccount())
 					.instanceIRODSFile(id);
 
-			return new IrodsBinaryValue(this.getPathUtilities().sha1(file),
+			return new IrodsBinaryValue(getPathUtilities().sha1(file),
 					getSourceName(), file.getAbsolutePath(), file.length(),
-					file.getName(), this.getMimeTypeDetector(),
-					this.getIrodsFileSystem().getIRODSAccessObjectFactory(),
-					this.getIrodsAccount());
+					file.getName(), getMimeTypeDetector(), getIrodsFileSystem()
+							.getIRODSAccessObjectFactory(), getIrodsAccount());
 
 		} catch (JargonException e) {
 			log.error("jargon error getting file from id", e);
@@ -660,7 +672,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 */
 	public ExtraProperties retrieveExtraPropertiesForId(final String id,
 			final boolean update) {
-		return this.extraPropertiesFor(id, update);
+		return extraPropertiesFor(id, update);
 	}
 
 	/**
@@ -670,7 +682,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @return
 	 */
 	public ExtraPropertiesStore retrieveExtraPropertiesStore() {
-		return this.extraPropertiesStore();
+		return extraPropertiesStore();
 	}
 
 	protected void checkFileNotExcluded(final String id, final File file) {
@@ -695,7 +707,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 			throw new IllegalArgumentException("null document");
 		}
 
-		return this.readDocument(document);
+		return readDocument(document);
 	}
 
 	/**
@@ -709,7 +721,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param irodsHost
 	 *            the irodsHost to set
 	 */
-	public void setIrodsHost(String irodsHost) {
+	public void setIrodsHost(final String irodsHost) {
 		this.irodsHost = irodsHost;
 	}
 
@@ -724,7 +736,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param irodsPort
 	 *            the irodsPort to set
 	 */
-	public void setIrodsPort(int irodsPort) {
+	public void setIrodsPort(final int irodsPort) {
 		this.irodsPort = irodsPort;
 	}
 
@@ -739,7 +751,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param irodsZone
 	 *            the irodsZone to set
 	 */
-	public void setIrodsZone(String irodsZone) {
+	public void setIrodsZone(final String irodsZone) {
 		this.irodsZone = irodsZone;
 	}
 
@@ -754,7 +766,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param irodsDefaultResource
 	 *            the irodsDefaultResource to set
 	 */
-	public void setIrodsDefaultResource(String irodsDefaultResource) {
+	public void setIrodsDefaultResource(final String irodsDefaultResource) {
 		this.irodsDefaultResource = irodsDefaultResource;
 	}
 
@@ -769,7 +781,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param irodsUser
 	 *            the irodsUser to set
 	 */
-	public void setIrodsUser(String irodsUser) {
+	public void setIrodsUser(final String irodsUser) {
 		this.irodsUser = irodsUser;
 	}
 
@@ -784,7 +796,7 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param irodsPassword
 	 *            the irodsPassword to set
 	 */
-	public void setIrodsPassword(String irodsPassword) {
+	public void setIrodsPassword(final String irodsPassword) {
 		this.irodsPassword = irodsPassword;
 	}
 
@@ -799,8 +811,9 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 * @param irodsAuthType
 	 *            the irodsAuthType to set
 	 */
-	public void setIrodsAuthType(String irodsAuthType) {
+	public void setIrodsAuthType(final String irodsAuthType) {
 		this.irodsAuthType = irodsAuthType;
 	}
+
 
 }

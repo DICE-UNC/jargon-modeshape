@@ -14,14 +14,18 @@ import org.infinispan.schematic.document.Document;
 import org.irods.jargon.core.connection.IRODSAccount;
 import org.irods.jargon.core.exception.FileNotFoundException;
 import org.irods.jargon.core.exception.JargonException;
+import org.irods.jargon.core.exception.JargonRuntimeException;
 import org.irods.jargon.core.pub.CollectionAO;
+import org.irods.jargon.core.pub.CollectionPagerAO;
 import org.irods.jargon.core.pub.DataObjectAO;
 import org.irods.jargon.core.pub.IRODSAccessObjectFactory;
 import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.core.pub.io.IRODSFileImpl;
+import org.irods.jargon.core.query.CollectionAndDataObjectListingEntry;
 import org.irods.jargon.core.query.JargonQueryException;
 import org.irods.jargon.core.query.MetaDataAndDomainData;
+import org.irods.jargon.core.query.PagingAwareCollectionListing;
 import org.irods.jargon.modeshape.connector.IrodsWriteableConnector;
 import org.irods.jargon.modeshape.connector.PathUtilities;
 import org.irods.jargon.modeshape.connector.exceptions.IrodsConnectorRuntimeException;
@@ -30,6 +34,7 @@ import org.modeshape.jcr.spi.federation.Connector.ExtraProperties;
 import org.modeshape.jcr.spi.federation.DocumentChanges;
 import org.modeshape.jcr.spi.federation.DocumentReader;
 import org.modeshape.jcr.spi.federation.DocumentWriter;
+import org.modeshape.jcr.spi.federation.PageWriter;
 import org.modeshape.jcr.value.Name;
 import org.modeshape.jcr.value.Property;
 import org.slf4j.Logger;
@@ -50,15 +55,23 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			.length();
 
 	private final FileFromIdConverter fileFromIdConverter;
+	private final int pageSize;
 
-	public FileNodeCreator(IRODSAccessObjectFactory irodsAccessObjectFactory,
-			IRODSAccount irodsAccount,
-			IrodsWriteableConnector irodsWriteableConnector) {
+	public FileNodeCreator(
+			final IRODSAccessObjectFactory irodsAccessObjectFactory,
+			final IRODSAccount irodsAccount,
+			final IrodsWriteableConnector irodsWriteableConnector) {
 		super(irodsAccessObjectFactory, irodsAccount, irodsWriteableConnector);
 
-		this.fileFromIdConverter = new FileFromIdConverterImpl(
+		fileFromIdConverter = new FileFromIdConverterImpl(
 				irodsAccessObjectFactory, irodsAccount,
 				irodsWriteableConnector.getPathUtilities());
+		try {
+			this.pageSize = irodsAccessObjectFactory.getJargonProperties().getMaxFilesAndDirsQueryMax();
+		} catch (JargonException e) {
+			log.error("cannot get jargon properties", e);
+			throw new JargonRuntimeException("cannot get jargon properties", e);
+		}
 
 	}
 
@@ -86,7 +99,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			log.error("error getting file from id", e);
 			throw new RepositoryException("error getting file", e);
 		}
-		if (this.getPathUtilities().isExcluded(file)) {
+		if (getPathUtilities().isExcluded(file)) {
 			log.info("file is excluded by filter or does not exist..return null");
 			return null;
 		}
@@ -95,13 +108,18 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		if (file.isFile()) {
 			return instanceForIdAsFile(id, file);
 		} else {
-			return instanceForIdAsCollection(id, file, offset);
+			try {
+				return instanceForIdAsCollection(id, file, offset);
+			} catch (JargonException e) {
+				log.error("error in jargon creating collection", e);
+				throw new RepositoryException("error creating collection", e);
+			}
 		}
 
 	}
 
 	private Document instanceForIdAsCollection(final String id,
-			final IRODSFile file, final int offset) {
+			final IRODSFile file, final int offset) throws JargonException {
 		log.info("instanceForIdAsCollection()");
 		DocumentWriter writer = newDocument(id);
 		writer.setPrimaryType(PathUtilities.NT_FOLDER);
@@ -115,39 +133,45 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		addAvuChildrenForCollection(file.getAbsolutePath(), id, writer);
 		log.info("AVU children added");
 
-		String[] children = file.list(this.getPathUtilities()
-				.getInclusionExclusionFilenameFilter());
-		long totalChildren = 0;
-		int nextOffset = 0;
 		log.info("parent is:{}", file.getAbsolutePath());
-		for (int i = 0; i < children.length; i++) {
-			String child = children[i];
 
-			// we need to count the total accessible children
-			totalChildren++;
-			// only add a child if it's in the current page
-			if (i >= offset && i < offset + IrodsWriteableConnector.PAGE_SIZE) {
-				// We use identifiers that contain the file/directory name
-				// ...
-				// String childName = child.getName();
+		CollectionPagerAO collectionPagerAO = getIrodsAccessObjectFactory()
+				.getCollectionPagerAO(getIrodsAccount());
+
+		PagingAwareCollectionListing listing = collectionPagerAO
+				.retrieveFirstPageUnderParent(file.getAbsolutePath());
+		log.info("got first listing:{}", listing);
+
+
+		for (CollectionAndDataObjectListingEntry entry : listing
+				.getCollectionAndDataObjectListingEntries()) {
+			
+			
 				String childId = PathUtilities.isRoot(id) ? PathUtilities.DELIMITER
-						+ child
-						: id + PathUtilities.DELIMITER + child;
+						+ entry.getNodeLabelDisplayValue()
+						: id + PathUtilities.DELIMITER
+								+ entry.getNodeLabelDisplayValue();
 
-				writer.addChild(childId, child);
+				writer.addChild(childId, entry.getNodeLabelDisplayValue());
 
-				log.info("added child directory with name:{}", child);
+				log.info("added child directory with name:{}",
+						entry.getNodeLabelDisplayValue());
 
+		}
+		
+		if (listing.getPagingAwareCollectionListingDescriptor().hasMore()) {
+			log.info("signal paging...");
+			
+			long totalSize = listing.getPagingAwareCollectionListingDescriptor().computeAbsoluteTotalSize();
+			if (totalSize == 0) {
+				totalSize = PageWriter.UNKNOWN_TOTAL_SIZE;
 			}
-			nextOffset = i + 1;
-
+			
+			writer.addPage(id, listing.getPagingAwareCollectionListingDescriptor().computeAbsoluteNextOffset(), this.pageSize,
+					totalSize);
+			
 		}
 
-		// if there are still accessible children add the next page
-		if (nextOffset < totalChildren) {
-			writer.addPage(id, nextOffset, IrodsWriteableConnector.PAGE_SIZE,
-					totalChildren);
-		}
 
 		if (!PathUtilities.isRoot(id)) {
 			// Set the reference to the parent ...
@@ -161,9 +185,9 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		return myDoc;
 	}
 
-	private Document instanceForIdAsFile(String id, IRODSFile file) {
+	private Document instanceForIdAsFile(final String id, final IRODSFile file) {
 		log.info("instanceFrIdAsFile()");
-		DocumentWriter writer = this.newDocument(id);
+		DocumentWriter writer = newDocument(id);
 		writer.setPrimaryType(PathUtilities.NT_FILE);
 		writer.addMixinType(PathUtilities.JCR_IRODS_IRODSOBJECT);
 
@@ -176,14 +200,14 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		if (!PathUtilities.isRoot(id)) {
 			log.info("not root, set reference to parent");
 			// Set the reference to the parent ...
-			String parentId = this.getPathUtilities().idFor(
+			String parentId = getPathUtilities().idFor(
 					(IRODSFile) file.getParentFile());
 			writer.setParents(parentId);
 		}
 
 		// Add the 'mix:mixinType' mixin; if other mixins are stored in the
 		// extra properties, this will append ...
-		if (this.isAddMimeTypeMixin()) {
+		if (isAddMimeTypeMixin()) {
 			writer.addMixinType(MIX_MIME_TYPE);
 		}
 
@@ -207,7 +231,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			final String id, final DocumentWriter writer) {
 
 		log.info("addAvuChildrenForDataObject()");
-		if (!this.isIncludeAvus()) {
+		if (!isIncludeAvus()) {
 			log.info("avus not included");
 			return;
 		}
@@ -219,8 +243,8 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			File fileForProps;
 
 			fileForProps = (File) getIrodsAccessObjectFactory()
-					.getIRODSFileFactory(this.getIrodsAccount())
-					.instanceIRODSFile(path);
+					.getIRODSFileFactory(getIrodsAccount()).instanceIRODSFile(
+							path);
 
 			log.info("file abs path to search for collection AVUs:{}",
 					fileForProps.getAbsolutePath());
@@ -259,7 +283,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 
 		log.info("addAvuChildrenForCollection()");
 
-		if (!this.isIncludeAvus()) {
+		if (!isIncludeAvus()) {
 			log.info("avus not included");
 			return;
 		}
@@ -268,8 +292,8 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		try {
 
 			File fileForProps = (File) getIrodsAccessObjectFactory()
-					.getIRODSFileFactory(this.getIrodsAccount())
-					.instanceIRODSFile(path);
+					.getIRODSFileFactory(getIrodsAccount()).instanceIRODSFile(
+							path);
 
 			log.info("file abs path to search for collection AVUs:{}",
 					fileForProps.getAbsolutePath());
@@ -306,8 +330,8 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	 * @param fileForProps
 	 */
 	private void addChildrenForEachAvu(final DocumentWriter writer,
-			List<MetaDataAndDomainData> metadatas, File fileForProps,
-			final String id) {
+			final List<MetaDataAndDomainData> metadatas,
+			final File fileForProps, final String id) {
 		StringBuilder sb;
 		for (MetaDataAndDomainData metadata : metadatas) {
 			sb = new StringBuilder();
@@ -331,13 +355,13 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	 * #store(org.modeshape.jcr.spi.federation.DocumentReader)
 	 */
 	@Override
-	public void store(Document document) {
+	public void store(final Document document) {
 		log.info("store()");
 		if (document == null) {
 			throw new IllegalArgumentException("null documentReader");
 		}
 
-		DocumentReader documentReader = this.getConnector()
+		DocumentReader documentReader = getConnector()
 				.produceDocumentReaderFromDocument(document);
 
 		String primaryType = documentReader.getPrimaryTypeName();
@@ -356,13 +380,13 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 
 	}
 
-	private void storeFolder(DocumentReader documentReader) {
+	private void storeFolder(final DocumentReader documentReader) {
 		log.info("storeFolder");
 		String id = documentReader.getDocumentId();
 		log.info("file to store:{}", id);
 		FileFromIdConverter converter = new FileFromIdConverterImpl(
-				this.getIrodsAccessObjectFactory(), this.getIrodsAccount(),
-				this.getPathUtilities());
+				getIrodsAccessObjectFactory(), getIrodsAccount(),
+				getPathUtilities());
 		IRODSFile file;
 		try {
 			file = converter.fileFor(id);
@@ -370,7 +394,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			log.error("jargonException getting file for storing folder", e);
 			throw new DocumentStoreException(id, "unable to get file for store");
 		}
-		if (this.isExcluded((File) file)) {
+		if (isExcluded((File) file)) {
 			throw new DocumentStoreException(id, "file is excluded");
 		}
 		File parent = file.getParentFile();
@@ -385,7 +409,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		file.mkdirs();
 
 		Map<Name, Property> properties = documentReader.getProperties();
-		ExtraProperties extraProperties = this.getConnector()
+		ExtraProperties extraProperties = getConnector()
 				.retrieveExtraPropertiesForId(id, false);
 		extraProperties.addAll(properties).except(
 				PathUtilities.JCR_PRIMARY_TYPE, PathUtilities.JCR_CREATED,
@@ -394,13 +418,13 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 
 	}
 
-	private void storeFile(DocumentReader documentReader) {
+	private void storeFile(final DocumentReader documentReader) {
 		log.info("storeFile");
 		String id = documentReader.getDocumentId();
 		log.info("file to store:{}", id);
 		FileFromIdConverter converter = new FileFromIdConverterImpl(
-				this.getIrodsAccessObjectFactory(), this.getIrodsAccount(),
-				this.getPathUtilities());
+				getIrodsAccessObjectFactory(), getIrodsAccount(),
+				getPathUtilities());
 		IRODSFile file;
 		try {
 			file = converter.fileFor(id);
@@ -408,7 +432,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			log.error("jargonException getting file for storing folder", e);
 			throw new DocumentStoreException(id, "unable to get file for store");
 		}
-		if (this.isExcluded((File) file)) {
+		if (isExcluded((File) file)) {
 			throw new DocumentStoreException(id, "file is excluded");
 		}
 		File parent = file.getParentFile();
@@ -428,7 +452,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 					e);
 		}
 		Map<Name, Property> properties = documentReader.getProperties();
-		ExtraProperties extraProperties = this.getConnector()
+		ExtraProperties extraProperties = getConnector()
 				.retrieveExtraPropertiesForId(id, false);
 		extraProperties.addAll(properties).except(
 				PathUtilities.JCR_PRIMARY_TYPE, PathUtilities.JCR_CREATED,
@@ -445,7 +469,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 	 * #update(org.modeshape.jcr.spi.federation.DocumentChanges)
 	 */
 	@Override
-	public void update(DocumentChanges documentChanges) {
+	public void update(final DocumentChanges documentChanges) {
 		log.info("update()");
 		if (documentChanges == null) {
 			throw new IllegalArgumentException("null documentchanges");
@@ -455,8 +479,8 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		log.info("id for doc changes:{}", id);
 		Document document = documentChanges.getDocument();
 		FileFromIdConverter converter = new FileFromIdConverterImpl(
-				this.getIrodsAccessObjectFactory(), this.getIrodsAccount(),
-				this.getPathUtilities());
+				getIrodsAccessObjectFactory(), getIrodsAccount(),
+				getPathUtilities());
 		IRODSFile file;
 		try {
 			file = converter.fileFor(id);
@@ -464,10 +488,10 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			log.error("jargonException getting file for storing folder", e);
 			throw new DocumentStoreException(id, "unable to get file for store");
 		}
-		if (this.isExcluded((File) file)) {
+		if (isExcluded((File) file)) {
 			throw new DocumentStoreException(id, "file is excluded");
 		}
-		DocumentReader documentReader = this.getConnector()
+		DocumentReader documentReader = getConnector()
 				.produceDocumentReaderFromDocument(document);
 		log.info("file for id:{}", file);
 		String idOrig = id;
@@ -484,8 +508,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 			log.info("parent id:{}", parentId);
 			File parent = file.getParentFile();
 			log.info("parent:{}", parent);
-			String newParentId = this.getPathUtilities().idFor(
-					(IRODSFile) parent);
+			String newParentId = getPathUtilities().idFor((IRODSFile) parent);
 			log.info("new parentId:{}", newParentId);
 
 			if (!parentId.equals(newParentId)) {
@@ -509,7 +532,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 
 				IRODSFile newFile;
 				try {
-					newFile = this.getIrodsAccessObjectFactory()
+					newFile = getIrodsAccessObjectFactory()
 							.getIRODSFileFactory(getIrodsAccount())
 							.instanceIRODSFile(newParent, file.getName());
 
@@ -536,10 +559,10 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 				}
 				parent = newParent;
 				// Remove the extra properties at the old location ...
-				this.getConnector().retrieveExtraPropertiesStore()
-						.removeProperties(id);
+				getConnector().retrieveExtraPropertiesStore().removeProperties(
+						id);
 				// Set the id to the new location ...
-				id = this.getPathUtilities().idFor(newFile);
+				id = getPathUtilities().idFor(newFile);
 			} else {
 				// It is the same parent as before ...
 				if (!parent.exists()) {
@@ -568,7 +591,7 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		String primaryType = documentReader.getPrimaryTypeName();
 		Map<Name, Property> properties = documentReader.getProperties();
 		id = idOrig;
-		ExtraProperties extraProperties = this.getConnector()
+		ExtraProperties extraProperties = getConnector()
 				.retrieveExtraPropertiesForId(id, true);
 		extraProperties.addAll(properties).except(
 				PathUtilities.JCR_PRIMARY_TYPE, PathUtilities.JCR_CREATED,
@@ -588,13 +611,14 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 
 	}
 
-	private IRODSFile renameChildrenFiles(String id, IRODSFile file,
-			Map<String, Name> renamedChildren, String renamedChildId) {
+	private IRODSFile renameChildrenFiles(final String id,
+			final IRODSFile file, final Map<String, Name> renamedChildren,
+			final String renamedChildId) {
 		log.info("renamed child id:{}", renamedChildId);
 
 		FileFromIdConverter converter = new FileFromIdConverterImpl(
-				this.getIrodsAccessObjectFactory(), this.getIrodsAccount(),
-				this.getPathUtilities());
+				getIrodsAccessObjectFactory(), getIrodsAccount(),
+				getPathUtilities());
 		IRODSFile child;
 		try {
 			child = converter.fileFor(renamedChildId);
@@ -604,13 +628,13 @@ public class FileNodeCreator extends AbstractNodeTypeCreator {
 		}
 		log.info("child:{}", child);
 		Name newName = renamedChildren.get(renamedChildId);
-		String newNameStr = this.getConnector().obtainHandleToFactories()
+		String newNameStr = getConnector().obtainHandleToFactories()
 				.getStringFactory().create(newName);
 		IRODSFile renamedChild;
 		try {
-			renamedChild = this.getIrodsAccessObjectFactory()
-					.getIRODSFileFactory(getIrodsAccount())
-					.instanceIRODSFile((File) file, newNameStr);
+			renamedChild = getIrodsAccessObjectFactory().getIRODSFileFactory(
+					getIrodsAccount()).instanceIRODSFile((File) file,
+					newNameStr);
 			log.info("renamedChild:{}", renamedChild);
 		} catch (JargonException e) {
 			throw new DocumentStoreException(id, e);
