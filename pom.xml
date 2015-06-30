@@ -13,7 +13,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<jargon.version>4.0.3.1-SNAPSHOT</jargon.version>
 		<findbugs.version>2.5.2</findbugs.version>
-		<modeshape.version>4.1.0.Final</modeshape.version>
+		<modeshape.version>4.2.0.Final</modeshape.version>
 		<infinispan.version>6.0.2.Final</infinispan.version>
 		<maven.compiler.source>1.7</maven.compiler.source>
 		<maven.compiler.target>1.7</maven.compiler.target>

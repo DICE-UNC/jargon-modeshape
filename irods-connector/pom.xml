@@ -25,7 +25,6 @@
 		<dependency>
 			<groupId>org.modeshape</groupId>
 			<artifactId>modeshape-jcr-api</artifactId>
-	
 		</dependency>
 		<dependency>
 			<groupId>org.modeshape</groupId>
@@ -39,7 +38,6 @@
 			<groupId>org.modeshape</groupId>
 			<artifactId>modeshape-common</artifactId>
 		</dependency>
-		
 		<dependency>
 			<groupId>org.irods.jargon</groupId>
 			<artifactId>jargon-core</artifactId>
