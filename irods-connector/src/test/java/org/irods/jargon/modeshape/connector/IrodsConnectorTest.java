@@ -107,6 +107,14 @@ public class IrodsConnectorTest {
 
 		// Get the root node ...
 		Node root = session.getRootNode();
+
+		Node irodsTop = session.getNode("/irodsGrid");
+
+		// Create an 'nt:file' node at the supplied path ...
+		irodsTop.addNode(
+				ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH,
+				"nt:folder");
+		session.save();
 		dumpNodes(root, 0);
 
 		assert root != null;
