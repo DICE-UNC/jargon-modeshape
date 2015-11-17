@@ -326,10 +326,12 @@ public class IrodsConnectorTest {
 				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
 				+ "/" + testFileName);
 		Assert.assertNotNull("did not find new node", actual);
+		dumpNodes(actual, 0);
 
 		// remove the node
+		String thePath = actual.getPath();
 
-		session.removeItem(actual.getPath());
+		session.removeItem(thePath);
 
 		// The auto-created properties are added when the session is saved ...
 		session.save();
