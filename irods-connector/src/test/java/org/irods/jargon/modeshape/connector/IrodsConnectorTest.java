@@ -326,7 +326,7 @@ public class IrodsConnectorTest {
 				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
 				+ "/" + testFileName);
 		Assert.assertNotNull("did not find new node", actual);
-		dumpNodes(actual, 0);
+		// dumpNodes(actual, 0);
 
 		// remove the node
 		String thePath = actual.getPath();
@@ -432,8 +432,9 @@ public class IrodsConnectorTest {
 
 		// remove the collection parent
 
+		// 4.4.0 String collectionNodePath = "/irodsGrid" +
+		// folderNode.getPath();
 		String collectionNodePath = folderNode.getPath();
-
 		session.removeItem(collectionNodePath);
 
 		// The auto-created properties are added when the session is saved ...
@@ -508,12 +509,16 @@ public class IrodsConnectorTest {
 
 		// move that new file to a different parent
 
+		/*
+		 * 4.4.0 String fileNodePath = "/irodsGrid" + fileNode.getPath(); String
+		 * targetNodePath = "/irodsGrid/" +
+		 * ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH + "/" +
+		 * testFileTargetName;
+		 */
 		String fileNodePath = fileNode.getPath();
 		String targetNodePath = "/irodsGrid/"
 				+ ConnectorIrodsSetupUtilities.FILES_CREATED_IN_TESTS_PATH
 				+ "/" + testFileTargetName;
-
-		session.save();
 
 		session.move(fileNodePath, targetNodePath);
 

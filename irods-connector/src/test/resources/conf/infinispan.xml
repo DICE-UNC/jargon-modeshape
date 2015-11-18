@@ -1,22 +1,22 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <infinispan xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="urn:infinispan:config:7.2 http://www.infinispan.org/schemas/infinispan-config-7.2.xsd"
-            xmlns="urn:infinispan:config:7.2">
-     
-    <cache-container default-cache="persistentRepository" statistics="false">
-        <jmx duplicate-domains="true"/>
-        <local-cache name="persistentRepository" statistics="false">
-            <transaction
-                    mode="NON_XA"
-                    locking="PESSIMISTIC"/>
-            <persistence
-                    passivation="false">
-                <file-store fetch-state="false"
-                            shared="false"
-                            preload="false"
-                            purge="false"
-                            path="target/content"/>
-            </persistence>
-        </local-cache>
-    </cache-container>
+            xsi:schemaLocation="urn:infinispan:config:6.0 http://www.infinispan.org/schemas/infinispan-config-6.0.xsd"
+            xmlns="urn:infinispan:config:6.0">
+
+    <global>
+       <!-- Defines the global settings shared by all caches -->
+    </global>
+ 
+    <default>
+       <!-- 
+         Defines the default behavior for all caches, including those created dynamically (e.g., when a 
+         repository uses a cache that doesn't exist in this configuration). 
+       -->
+    </default>
+ 
+    <namedCache name="irods">
+       
+        <transaction
+            transactionManagerLookupClass="org.infinispan.transaction.lookup.GenericTransactionManagerLookup"
+            transactionMode="TRANSACTIONAL" lockingMode="PESSIMISTIC" />
+    </namedCache>
 </infinispan>
