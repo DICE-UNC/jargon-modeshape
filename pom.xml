@@ -41,19 +41,6 @@
 	</developers>
 	<repositories>
 		<repository>
-			<id>ibiblio.repository</id>
-			<name>ibiblio.repository</name>
-			<url>http://mirrors.ibiblio.org/pub/mirrors/maven2</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-				<updatePolicy>never</updatePolicy>
-				<checksumPolicy>fail</checksumPolicy>
-			</snapshots>
-		</repository>
-		<repository>
 			<id>dice.repository snaps</id>
 			<name>dice.repository.snapshots</name>
 			<url>https://raw.github.com/DICE-UNC/DICE-Maven/master/snapshots</url>

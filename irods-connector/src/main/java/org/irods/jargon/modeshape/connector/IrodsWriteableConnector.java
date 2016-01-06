@@ -8,6 +8,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
@@ -22,6 +23,8 @@ import org.irods.jargon.core.pub.IRODSFileSystemSingletonWrapper;
 import org.irods.jargon.core.pub.io.IRODSFile;
 import org.irods.jargon.modeshape.connector.exceptions.IrodsConnectorRuntimeException;
 import org.irods.jargon.modeshape.connector.exceptions.UnknownNodeTypeException;
+import org.irods.jargon.modeshape.connector.metadata.AvuMetadataConverter;
+import org.irods.jargon.modeshape.connector.metadata.AvuMetadataConverterImpl;
 import org.irods.jargon.modeshape.connector.nodetypes.AbstractNodeTypeCreator;
 import org.irods.jargon.modeshape.connector.nodetypes.FileFromIdConverter;
 import org.irods.jargon.modeshape.connector.nodetypes.FileFromIdConverterImpl;
@@ -39,6 +42,7 @@ import org.modeshape.jcr.spi.federation.PageKey;
 import org.modeshape.jcr.spi.federation.Pageable;
 import org.modeshape.jcr.spi.federation.WritableConnector;
 import org.modeshape.jcr.value.Name;
+import org.modeshape.jcr.value.Property;
 import org.modeshape.jcr.value.ValueFactories;
 import org.modeshape.jcr.value.binary.ExternalBinaryValue;
 import org.slf4j.Logger;
@@ -51,7 +55,7 @@ import org.slf4j.LoggerFactory;
  *         -connector-git/src/main/java/org/modeshape/connector/git
  */
 public class IrodsWriteableConnector extends WritableConnector implements
-		Pageable {
+		Pageable, ExtraPropertiesStore {
 
 	/**
 	 * The string path for a {@link File} object that represents the top-level
@@ -150,6 +154,10 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	private PathUtilities pathUtilities;
 
 	private IRODSFileSystem irodsFileSystem;
+	
+	
+	
+	
 
 	/**
 	 * The maximum number of children a folder will expose at any given time.
@@ -492,6 +500,8 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 */
 	public IRODSAccount getIrodsAccount() {
 		try {
+			
+			log.info("account from context is:{}",this.getContext().getSecurityContext().getUserName());
 
 			IRODSAccount irodsAccount = IRODSAccount.instance(getIrodsHost(),
 					getIrodsPort(), getIrodsUser(), getIrodsPassword(), "",
@@ -621,6 +631,21 @@ public class IrodsWriteableConnector extends WritableConnector implements
 
 		return new NodeTypeFactoryImpl(getIrodsFileSystem()
 				.getIRODSAccessObjectFactory(), irodsAccount, this);
+	}
+	
+	/**
+	 * Get the metadata converter
+	 * @param irodsAccount
+	 * @return
+	 */
+	private AvuMetadataConverter instanceMetadataConverter(final IRODSAccount irodsAccount) {
+		log.info("instanceMetadataConverter()");
+		try {
+			return new AvuMetadataConverterImpl(this.getIrodsFileSystem().getIRODSAccessObjectFactory(), irodsAccount);
+		} catch (JargonException e) {
+			log.error("unable to get AvuMetadataConverter", e);
+			throw new IrodsConnectorRuntimeException("jargon exception getting avu converter", e);
+		}
 	}
 
 	/**
@@ -813,6 +838,41 @@ public class IrodsWriteableConnector extends WritableConnector implements
 	 */
 	public void setIrodsAuthType(final String irodsAuthType) {
 		this.irodsAuthType = irodsAuthType;
+	}
+
+	@Override
+	public boolean contains(String avuKey) {
+		log.info("contains()");
+		if (avuKey ==null || avuKey.isEmpty()) {
+			throw new IllegalArgumentException("null or empty avuKey");
+		}
+		log.info("avuKey:{}", avuKey);
+		AvuMetadataConverter converter = this.instanceMetadataConverter(this.getIrodsAccount());
+		return converter.containsProperty(avuKey);
+	}
+
+	@Override
+	public Map<Name, Property> getProperties(String arg0) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean removeProperties(String arg0) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public void storeProperties(String arg0, Map<Name, Property> arg1) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void updateProperties(String arg0, Map<Name, Property> arg1) {
+		// TODO Auto-generated method stub
+		
 	}
 
 
